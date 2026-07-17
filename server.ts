@@ -11,8 +11,8 @@ dotenv.config();
 let supabaseClient: any = null;
 function getSupabase() {
   if (!supabaseClient) {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+    const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     if (!url || !key) {
       throw new Error("SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY is missing from environment variables.");
     }
@@ -560,7 +560,7 @@ app.post("/api/tao/statements", async (req, res) => {
       .from("events")
       .insert({
         id: crypto.randomUUID(),
-        space_id: process.env.AUTODISCO_SPACE_ID,
+        space_id: process.env.AUTODISCO_SPACE_ID || process.env.VITE_AUTODISCO_SPACE_ID,
         type: "SUMMARY_WRITTEN",
         author_kind: "SYSTEM",
         content: { text, mode, metric, addresses },
