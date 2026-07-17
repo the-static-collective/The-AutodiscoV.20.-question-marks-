@@ -79,3 +79,33 @@ export interface LoopIt {
   isPrivate: boolean;
   history: string[]; // lifecycle event trail
 }
+
+export type OutputMode =
+  | "observed"
+  | "derived"
+  | "metaphor"
+  | "interpretation";
+
+export interface RenderedSentence {
+  id: string;
+  text: string;
+  mode: OutputMode;
+  claimPlanId?: string;
+  ledgerRefs?: string[];
+  metricRef?: {
+    id: string;
+    value: number | string;
+    snapshotId: string;
+    registryRevision: string;
+  };
+  ontologyRef?: {
+    symbolId: string;
+    version: string;
+    mappingId: string;
+  };
+  renderTraceId?: string;
+  disclosure: {
+    synthetic: boolean;
+    provenanceStatus: "verified" | "stale" | "unavailable" | "failed";
+  };
+}

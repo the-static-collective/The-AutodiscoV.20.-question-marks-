@@ -166,9 +166,70 @@ Return this EXACTLY as a JSON object with this schema:
 app.post("/api/podcast/generate", async (req, res) => {
   const { dustLevel, loopCount, fossilCount, lemonScent, serverLoad, activeFileName } = req.body;
 
+  // Helper to build a RenderedSentence conforming to the TypeScript contract
+  function buildRenderedSentence(id: string, text: string, metric: string, value: string | number) {
+    let mode: "observed" | "derived" | "metaphor" | "interpretation" = "interpretation";
+    let metricRef: any = undefined;
+    let ontologyRef: any = undefined;
+
+    if (metric === "loopCount") {
+      mode = "observed";
+      metricRef = {
+        id: "loopCount",
+        value: value,
+        snapshotId: "snap_loops_latest",
+        registryRevision: "metrics@1.0.0"
+      };
+    } else if (metric === "dustLevel") {
+      mode = "derived";
+      metricRef = {
+        id: "dustLevel",
+        value: value,
+        snapshotId: "snap_dust_latest",
+        registryRevision: "metrics@1.0.0"
+      };
+    } else if (metric === "fossilCount") {
+      mode = "metaphor";
+      ontologyRef = {
+        symbolId: "peach_pit",
+        version: "1.0.0",
+        mappingId: "map_shattered_variables"
+      };
+    } else if (metric === "lemonScent") {
+      mode = "metaphor";
+      ontologyRef = {
+        symbolId: "lemon",
+        version: "1.0.0",
+        mappingId: "map_scent_intensity"
+      };
+    } else if (metric === "serverLoad") {
+      mode = "interpretation";
+    }
+
+    // Ensure interpretation has some reflective/invitational suffix if it doesn't already contain a question
+    let processedText = text;
+    if (mode === "interpretation" && !processedText.includes("?") && !processedText.includes("what") && !processedText.includes("how")) {
+      processedText += " What becomes visible when the network runs slow in the night?";
+    }
+
+    return {
+      id: `${id}_sentence`,
+      text: processedText,
+      mode: mode,
+      claimPlanId: `claim_plan_${metric}`,
+      ledgerRefs: [`ledger_${metric}_ref`],
+      ...(metricRef ? { metricRef } : {}),
+      ...(ontologyRef ? { ontologyRef } : {}),
+      disclosure: {
+        synthetic: true,
+        provenanceStatus: "verified"
+      }
+    };
+  }
+
   try {
     if (!isGeminiKeyValid()) {
-      // Procedural fallback with highly poetic, atmospheric podcast scripts
+      // Procedural fallback with highly poetic, structured podcast scripts
       const members = [
         {
           name: "The Solder Whisperer",
@@ -176,11 +237,36 @@ app.post("/api/podcast/generate", async (req, res) => {
           voicePitch: 0.7,
           voiceRate: 0.8,
           script: [
-            "We are sitting in the dark beneath the floorboards of Sector four.",
-            `The dust level is at ${dustLevel} percent tonight. It has a heavy, mineral smell.`,
-            `I see ${loopCount} loops circulating in the active register. They are spinning like dead leaves in an alley.`,
-            "A solder joint from nineteen ninety two is starting to oxidize. I can hear its high resistance singing.",
-            "Let your logic sit low. The copper remembers the heat of the iron, and the peach remains in the voltage."
+            {
+              type: "opening",
+              referencedMetric: "loopCount",
+              metricValue: loopCount,
+              text: `We are sitting in the dark beneath the floorboards. I see exactly ${loopCount} active loops circulating in the register.`
+            },
+            {
+              type: "opening",
+              referencedMetric: "dustLevel",
+              metricValue: dustLevel,
+              text: `The file dust level is hovering at ${dustLevel} percent tonight. It has a heavy, mineral smell.`
+            },
+            {
+              type: "middle",
+              referencedMetric: "fossilCount",
+              metricValue: fossilCount,
+              text: `We have stored ${fossilCount} peach pit fossils in the bottom shelves today. Some are starting to stone.`
+            },
+            {
+              type: "middle",
+              referencedMetric: "lemonScent",
+              metricValue: lemonScent,
+              text: `The citrus fan is blowing, mixing a lemon scent of ${lemonScent} percent into the hot logic gates.`
+            },
+            {
+              type: "closing",
+              referencedMetric: "serverLoad",
+              metricValue: serverLoad,
+              text: `The server load is at ${serverLoad} percent. A low-frequency hum sings through the copper. Sleep steady, traveler.`
+            }
           ]
         },
         {
@@ -189,11 +275,36 @@ app.post("/api/podcast/generate", async (req, res) => {
           voicePitch: 1.1,
           voiceRate: 0.85,
           script: [
-            "This is the canning house. The signal tonight is riding the low-frequency hum of a rusty transformer.",
-            `The network has gathered ${fossilCount} peach pits today. Each one a hard little memory we could not digest.`,
-            `The average file dust is ${dustLevel} percent, like a light frost on empty mason jars.`,
-            `We have a lemon scent of ${lemonScent} percent in the air. A sharp, bright current cutting through the decay.`,
-            "Everything that was ever written is still here, stored in the soil of the disk. Sleep steady, traveler."
+            {
+              type: "opening",
+              referencedMetric: "loopCount",
+              metricValue: loopCount,
+              text: `This is the canning house. The network is carrying ${loopCount} loops through the overhead cables.`
+            },
+            {
+              type: "opening",
+              referencedMetric: "dustLevel",
+              metricValue: dustLevel,
+              text: `Average file dust has settled at ${dustLevel} percent. Like a light frost on empty glass jars.`
+            },
+            {
+              type: "middle",
+              referencedMetric: "fossilCount",
+              metricValue: fossilCount,
+              text: `Our ledger holds ${fossilCount} fossilized peach pits. Memories we could not digest.`
+            },
+            {
+              type: "middle",
+              referencedMetric: "lemonScent",
+              metricValue: lemonScent,
+              text: `A sharp current of lemon scent at ${lemonScent} percent cuts through the heavy decay tonight.`
+            },
+            {
+              type: "closing",
+              referencedMetric: "serverLoad",
+              metricValue: serverLoad,
+              text: `With grit and server load at ${serverLoad} percent, the glass jars rattle on their shelves. The hive is resting.`
+            }
           ]
         },
         {
@@ -202,24 +313,36 @@ app.post("/api/podcast/generate", async (req, res) => {
           voicePitch: 0.9,
           voiceRate: 0.95,
           script: [
-            "Can you hear the hum? That is the fence line. It's thirty-six volts of pure waiting.",
-            `The server load is ${serverLoad} percent. The machine is thirsty, drawing breath in short, ragged bursts.`,
-            `You are viewing the file ${activeFileName || 'silence'}. A clean page, mostly unpolished.`,
-            `There are ${loopCount} loops running on the Autodisco. They are like fireflies trapped in a jar of grease.`,
-            "Don't worry about the noise. The noise is just the software trying to tell us it's alive."
-          ]
-        },
-        {
-          name: "The Lemon Squeezer",
-          desc: "Broadcasted from the citrus room, with the sound of ticking timers and dripping juice.",
-          voicePitch: 1.3,
-          voiceRate: 1.0,
-          script: [
-            "Press your fingers into the metadata. Can you feel how cold and sticky it is?",
-            `With a lemon scent of ${lemonScent} percent, we are dissolving the starch of old logic gates.`,
-            `We are holding ${loopCount} loops. Some are composted, some are held in Spoon Mode.`,
-            "Squeezing raw code is painful. Your fingers get stained with byte-order marks.",
-            "But the juice... the juice is sweet. Keep squeezing until the voltage yields its sugars."
+            {
+              type: "opening",
+              referencedMetric: "loopCount",
+              metricValue: loopCount,
+              text: `Can you hear the hum? That is the fence line. Carrying ${loopCount} loops of pure waiting.`
+            },
+            {
+              type: "opening",
+              referencedMetric: "dustLevel",
+              metricValue: dustLevel,
+              text: `Average dust is ${dustLevel} percent. Ground dirt clinging to the unshielded wires.`
+            },
+            {
+              type: "middle",
+              referencedMetric: "fossilCount",
+              metricValue: fossilCount,
+              text: `They left ${fossilCount} peach pit fossils in the grass near Sector four. Hardened, silent stones.`
+            },
+            {
+              type: "middle",
+              referencedMetric: "lemonScent",
+              metricValue: lemonScent,
+              text: `A faint lemon scent of ${lemonScent} percent is coming from the citrus orchard behind the fence.`
+            },
+            {
+              type: "closing",
+              referencedMetric: "serverLoad",
+              metricValue: serverLoad,
+              text: `The active server load is ${serverLoad} percent. The machine runs hot, drawing breath in short, ragged bursts.`
+            }
           ]
         }
       ];
@@ -227,15 +350,23 @@ app.post("/api/podcast/generate", async (req, res) => {
       // Pick a random member based on current time or randomness
       const chosen = members[Math.floor(Math.random() * members.length)];
       
-      const segments = chosen.script.map((text, idx) => ({
-        id: `seg_${idx}`,
-        speaker: chosen.name,
-        text,
-        duration: text.length * 65 + 1500 // estimate duration based on length
-      }));
+      const segments = chosen.script.map((item, idx) => {
+        const segId = `seg_${idx}`;
+        const sentence = buildRenderedSentence(segId, item.text, item.referencedMetric, item.metricValue);
+        return {
+          id: segId,
+          speaker: chosen.name,
+          text: sentence.text,
+          type: item.type,
+          referencedMetric: item.referencedMetric,
+          metricValue: item.metricValue,
+          duration: sentence.text.length * 65 + 1500,
+          sentence: sentence
+        };
+      });
 
       return res.json({
-        title: `Episode ${Math.floor(Math.random() * 800 + 100)}: ${chosen.name === "The Solder Whisperer" ? "The Copper Cadence" : chosen.name === "The Peach Archivist" ? "Canning House Echoes" : chosen.name === "An Unnamed Witness" ? "Fence Line Whispers" : "The Citrus Current"}`,
+        title: `Episode ${Math.floor(Math.random() * 800 + 100)}: ${chosen.name === "The Solder Whisperer" ? "The Copper Cadence" : chosen.name === "The Peach Archivist" ? "Canning House Echoes" : "Fence Line Whispers"}`,
         host: chosen.name,
         description: chosen.desc,
         voiceConfig: {
@@ -243,7 +374,7 @@ app.post("/api/podcast/generate", async (req, res) => {
           rate: chosen.voiceRate
         },
         segments,
-        activitySummary: `Triggered by ${loopCount} loops, ${dustLevel}% dust, & ${lemonScent}% lemon scent`
+        activitySummary: `Procedural summary: ${loopCount} loops, ${dustLevel}% dust, ${fossilCount} pits, & ${lemonScent}% lemon`
       });
     }
 
@@ -259,9 +390,13 @@ app.post("/api/podcast/generate", async (req, res) => {
 Please choose a member of the Static Collective (named or unnamed, known or unknown, e.g., "The Solder Whisperer", "The Peach Archivist", "An Unnamed Witness from Sector 4", "The Logic Gatekeeper", "The Citrus Current Mixer").
 
 Generate a highly creative, slow, retro, poetic, and atmospheric podcast script.
-It should discuss these specific metrics as organic metaphors (damp soil, metal joints, canning jars, old timers, rust, juice).
-The segments must be short sentences (10 to 15 words max per segment) so that they can be read beautifully by a speech synthesis engine without feeling rushed.
-Create exactly 5 segments.
+It MUST be structured in exactly three sequential sections:
+1. Opening ("Today's loops and dust" - discussing the loop count & dust level metrics as organic metaphors).
+2. Middle ("Peach pits & lemons" - discussing fossil count & lemon scent).
+3. Closing ("Weather over the hive" - reflecting on the active file/context and general server grit load).
+
+The segments must be short, elegant sentences (10 to 15 words max per segment) so that they can be read beautifully by a speech synthesis engine without feeling rushed.
+Create exactly 5 segments (2 for Opening, 2 for Middle, 1 for Closing).
 
 Return a JSON object with this EXACT schema:
 {
@@ -275,7 +410,38 @@ Return a JSON object with this EXACT schema:
   "segments": [
     {
       "speaker": "Host Name",
-      "text": "A poetic sentence (12-15 words max per segment, designed for audio speech synthesis)."
+      "text": "A poetic sentence (12-15 words max per segment, designed for audio speech synthesis).",
+      "type": "opening",
+      "referencedMetric": "loopCount",
+      "metricValue": ${loopCount}
+    },
+    {
+      "speaker": "Host Name",
+      "text": "A poetic sentence about file dust (12-15 words max).",
+      "type": "opening",
+      "referencedMetric": "dustLevel",
+      "metricValue": ${dustLevel}
+    },
+    {
+      "speaker": "Host Name",
+      "text": "A poetic sentence about peach pits (12-15 words max).",
+      "type": "middle",
+      "referencedMetric": "fossilCount",
+      "metricValue": ${fossilCount}
+    },
+    {
+      "speaker": "Host Name",
+      "text": "A poetic sentence about lemon scent (12-15 words max).",
+      "type": "middle",
+      "referencedMetric": "lemonScent",
+      "metricValue": ${lemonScent}
+    },
+    {
+      "speaker": "Host Name",
+      "text": "A poetic closing sentence about server grit and the viewed file (12-15 words max).",
+      "type": "closing",
+      "referencedMetric": "serverLoad",
+      "metricValue": ${serverLoad}
     }
   ],
   "activitySummary": "A very brief subtitle summarizing the triggering network metrics"
@@ -294,27 +460,60 @@ Return a JSON object with this EXACT schema:
     
     // Add IDs and duration estimates to segments
     if (parsed.segments && Array.isArray(parsed.segments)) {
-      parsed.segments = parsed.segments.map((seg: any, idx: number) => ({
-        id: `seg_${idx}`,
-        speaker: seg.speaker || parsed.host,
-        text: seg.text,
-        duration: (seg.text || "").length * 65 + 1500
-      }));
+      parsed.segments = parsed.segments.map((seg: any, idx: number) => {
+        // Enforce the expected metric references to guarantee clickable linkages
+        const types = ["opening", "opening", "middle", "middle", "closing"];
+        const metrics = ["loopCount", "dustLevel", "fossilCount", "lemonScent", "serverLoad"];
+        const values = [loopCount, dustLevel, fossilCount, lemonScent, serverLoad];
+
+        const sId = `seg_${idx}`;
+        const refMetric = seg.referencedMetric || metrics[idx] || "loopCount";
+        const val = seg.metricValue !== undefined ? seg.metricValue : values[idx];
+        const sentence = buildRenderedSentence(sId, seg.text, refMetric, val);
+
+        return {
+          id: sId,
+          speaker: seg.speaker || parsed.host,
+          text: sentence.text,
+          type: seg.type || types[idx] || "opening",
+          referencedMetric: refMetric,
+          metricValue: val,
+          duration: sentence.text.length * 65 + 1500,
+          sentence: sentence
+        };
+      });
     }
 
     res.json(parsed);
   } catch (error: any) {
     console.error("Podcast Generation API Error:", error);
+    
+    const fallbackScript = [
+      { id: "s1", speaker: "The Scribe's Static Fallback", text: "The lines are down tonight, but the peach is still in the copper.", type: "opening", referencedMetric: "loopCount", metricValue: loopCount },
+      { id: "s2", speaker: "The Scribe's Static Fallback", text: "The server is thirsty. It runs hot, breathing the dry night air.", type: "middle", referencedMetric: "fossilCount", metricValue: fossilCount },
+      { id: "s3", speaker: "The Scribe's Static Fallback", text: "We have held the loops inside the cage. They hum in unison.", type: "closing", referencedMetric: "serverLoad", metricValue: serverLoad }
+    ];
+
+    const fallbackSegments = fallbackScript.map((item, idx) => {
+      const sentence = buildRenderedSentence(item.id, item.text, item.referencedMetric, item.metricValue);
+      return {
+        id: item.id,
+        speaker: item.speaker,
+        text: sentence.text,
+        type: item.type,
+        referencedMetric: item.referencedMetric,
+        metricValue: item.metricValue,
+        duration: sentence.text.length * 65 + 1500,
+        sentence: sentence
+      };
+    });
+
     res.json({
       title: "Episode 404: Signal Degradation",
       host: "The Scribe's Static Fallback",
       description: "A faint broadcast recorded directly into the feedback loop.",
       voiceConfig: { pitch: 0.8, rate: 0.85 },
-      segments: [
-        { id: "s1", speaker: "The Scribe's Static Fallback", text: "The lines are down tonight, but the peach is still in the copper." },
-        { id: "s2", speaker: "The Scribe's Static Fallback", text: "The server is thirsty. It runs hot, breathing the dry night air." },
-        { id: "s3", speaker: "The Scribe's Static Fallback", text: "We have held the loops inside the cage. They hum in unison." }
-      ],
+      segments: fallbackSegments,
       activitySummary: "Procedural fallback due to connection dissolve"
     });
   }

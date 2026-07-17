@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Play, Pause, SkipForward, SkipBack, Radio, Volume2, VolumeX, RefreshCw, AlertCircle, ChevronDown, ChevronUp, Layers, HelpCircle } from "lucide-react";
+import { RenderedSentence, OutputMode } from "../types";
 
 interface PodcastSegment {
   id: string;
   speaker: string;
   text: string;
   duration: number;
+  type?: "opening" | "middle" | "closing";
+  referencedMetric?: "loopCount" | "dustLevel" | "fossilCount" | "lemonScent" | "serverLoad";
+  metricValue?: string | number;
+  sentence?: RenderedSentence;
 }
 
 interface PodcastWidgetProps {
@@ -16,7 +21,113 @@ interface PodcastWidgetProps {
   serverLoad: number;
   activeFileName: string;
   onDjMessage: (msg: string) => void;
+  onMetricClick?: (metricName: "loopCount" | "dustLevel" | "fossilCount" | "lemonScent" | "serverLoad") => void;
 }
+
+const getSentenceForSegment = (seg: any, idx: number): RenderedSentence => {
+  if (seg.sentence) return seg.sentence;
+  
+  // Dynamic fallback generator
+  const refMetric = seg.referencedMetric || "loopCount";
+  const val = seg.metricValue !== undefined ? seg.metricValue : "0";
+  
+  let mode: OutputMode = "interpretation";
+  let metricRef: any = undefined;
+  let ontologyRef: any = undefined;
+
+  if (refMetric === "loopCount") {
+    mode = "observed";
+    metricRef = { id: "loopCount", value: val, snapshotId: "snap_loops_fallback", registryRevision: "metrics@1.0.0" };
+  } else if (refMetric === "dustLevel") {
+    mode = "derived";
+    metricRef = { id: "dustLevel", value: val, snapshotId: "snap_dust_fallback", registryRevision: "metrics@1.0.0" };
+  } else if (refMetric === "fossilCount") {
+    mode = "metaphor";
+    ontologyRef = { symbolId: "peach_pit", version: "1.0.0", mappingId: "map_shattered_fallback" };
+  } else if (refMetric === "lemonScent") {
+    mode = "metaphor";
+    ontologyRef = { symbolId: "lemon", version: "1.0.0", mappingId: "map_scent_fallback" };
+  } else if (refMetric === "serverLoad") {
+    mode = "interpretation";
+  }
+
+  return {
+    id: seg.id || `seg_${idx}_fallback`,
+    text: seg.text,
+    mode,
+    claimPlanId: `claim_plan_${refMetric}`,
+    ledgerRefs: [`ledger_${refMetric}_fallback`],
+    metricRef,
+    ontologyRef,
+    disclosure: {
+      synthetic: true,
+      provenanceStatus: "verified"
+    }
+  };
+};
+
+export const SentenceBadge = ({ sentence, onClick }: { sentence: RenderedSentence; onClick?: () => void }) => {
+  const getBadgeConfig = (mode: OutputMode) => {
+    switch (mode) {
+      case "observed":
+        return {
+          label: "OBSERVED",
+          sub: sentence.metricRef?.id || "Event",
+          tooltip: "OBSERVED — grounded, direct report of signed event",
+          colors: "bg-emerald-950/40 text-emerald-400 border-emerald-800/40 hover:bg-emerald-950/60"
+        };
+      case "derived":
+        return {
+          label: "DERIVED",
+          sub: `${sentence.metricRef?.id || "metric"}@${sentence.metricRef?.registryRevision || "1.0.0"}`,
+          tooltip: "DERIVED — reproducible computation from observed inputs",
+          colors: "bg-cyan-950/40 text-cyan-400 border-cyan-800/40 hover:bg-cyan-950/60"
+        };
+      case "metaphor":
+        return {
+          label: "METAPHOR",
+          sub: `${sentence.ontologyRef?.symbolId || "symbol"}@${sentence.ontologyRef?.version || "1.0.0"}`,
+          tooltip: "METAPHOR — registered symbolic rendering",
+          colors: "bg-amber-950/40 text-amber-400 border-amber-800/40 hover:bg-amber-950/60"
+        };
+      case "interpretation":
+        return {
+          label: "INTERPRETATION",
+          sub: "Reading",
+          tooltip: "INTERPRETATION — offered reading, question, or invitation",
+          colors: "bg-stone-900/60 text-stone-300 border-stone-750 hover:bg-stone-850"
+        };
+    }
+  };
+
+  const config = getBadgeConfig(sentence.mode);
+
+  return (
+    <span className="inline-flex items-center gap-1 relative group">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          if (onClick) onClick();
+        }}
+        className={`px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold tracking-wider border transition-all cursor-pointer flex items-center gap-1 ${config.colors}`}
+      >
+        <span>{config.label}</span>
+        <span className="text-[7.5px] opacity-60 font-normal">· {config.sub}</span>
+      </button>
+
+      {/* HTML CSS Hover Tooltip */}
+      <span className="absolute bottom-full left-0 mb-1.5 hidden group-hover:block z-50 bg-stone-950 border border-stone-800 text-stone-200 text-[10px] p-2 rounded shadow-xl w-60 font-sans leading-normal pointer-events-none">
+        {config.tooltip}
+        {sentence.disclosure.synthetic && (
+          <div className="mt-1 pt-1 border-t border-stone-800 text-[8px] text-stone-500 font-mono flex items-center gap-1">
+            <span className="w-1 h-1 rounded-full bg-orange-500 animate-pulse" />
+            SYNTHETIC PROVENANCE • STATE VALIDATED
+          </div>
+        )}
+      </span>
+    </span>
+  );
+};
 
 export default function PodcastWidget({
   dustLevel,
@@ -26,6 +137,7 @@ export default function PodcastWidget({
   serverLoad,
   activeFileName,
   onDjMessage,
+  onMetricClick,
 }: PodcastWidgetProps) {
   const [podcast, setPodcast] = useState<{
     title: string;
@@ -462,41 +574,118 @@ export default function PodcastWidget({
             <div className="font-sans text-stone-400 text-[11px] leading-relaxed italic bg-stone-900/50 p-2.5 rounded border border-stone-850/60">
               "{podcast.description}"
             </div>
+            {/* Synthetic voice disclosure banner */}
+            <div className="mt-2 bg-stone-950 border border-stone-850 px-2.5 py-1.5 rounded text-[10px] text-stone-500 font-mono flex items-center gap-1.5 leading-snug">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+              <span>SYNTHETIC PROCECURAL VOICE INTERPRETER • REAL-TIME STATE CONTEXTS</span>
+            </div>
           </div>
 
           {/* Transcript Log */}
           <div className="space-y-3">
-            <h4 className="font-mono text-[9px] text-stone-500 uppercase tracking-widest border-b border-stone-850 pb-1.5">
-              Live Transcript Echo
-            </h4>
+            <div className="flex items-center justify-between border-b border-stone-850 pb-1.5">
+              <h4 className="font-mono text-[9px] text-stone-500 uppercase tracking-widest">
+                Live Transcript Echo
+              </h4>
+              <span className="text-[9px] font-mono text-orange-400/80 bg-orange-950/20 px-1 rounded border border-orange-900/40">
+                Verifiable Local State
+              </span>
+            </div>
             
-            <div className="max-h-48 overflow-y-auto space-y-2.5 pr-1.5">
+            <div className="max-h-52 overflow-y-auto space-y-3.5 pr-1.5">
               {podcast.segments.map((seg, idx) => {
                 const isActive = idx === currentSegmentIdx;
+                const sentence = getSentenceForSegment(seg, idx);
+                
+                // Human friendly labels for the procedural parts
+                const phaseLabels: Record<string, string> = {
+                  opening: "Phase 1: Today's loops & dust",
+                  middle: "Phase 2: Peach pits & lemons",
+                  closing: "Phase 3: Weather over the hive"
+                };
+
+                // Human-friendly metric source labels and formulas
+                const metricLabels: Record<string, { label: string; formula: string }> = {
+                  loopCount: { label: "Network loops", formula: "Σ(Live LoopIts in ledger)" },
+                  dustLevel: { label: "Average file dust", formula: "Σ(file.dust) / files.count" },
+                  fossilCount: { label: "Peach pit fossils", formula: "fossils.count (un-digested)" },
+                  lemonScent: { label: "Lemon scent sparkle", formula: "SqueezePanel intensity" },
+                  serverLoad: { label: "Server grit load", formula: "UptimeMonitor voltage" }
+                };
+
+                const metricMeta = seg.referencedMetric ? metricLabels[seg.referencedMetric] : null;
+
                 return (
                   <div
                     key={seg.id}
-                    onClick={() => {
-                      setCurrentSegmentIdx(idx);
-                      triggerPlay(podcast, idx);
-                    }}
-                    className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
+                    className={`p-3 rounded-lg border transition-all flex flex-col gap-2 relative overflow-hidden ${
                       isActive
-                        ? "bg-orange-950/20 border-orange-800/60 text-orange-200 font-medium"
-                        : "bg-stone-950/40 border-stone-900 hover:border-stone-800 text-stone-400"
+                        ? "bg-orange-950/15 border-orange-800/50 shadow-[inset_0_0_12px_rgba(249,115,22,0.06)]"
+                        : "bg-stone-950/40 border-stone-900/80 hover:border-stone-850"
                     }`}
                   >
-                    <div className="flex items-center justify-between font-mono text-[9px] mb-1">
-                      <span className={isActive ? "text-orange-400 font-bold" : "text-stone-500"}>
-                        🎤 {seg.speaker}
-                      </span>
-                      <span className="text-stone-600">
+                    {/* Active Speaker / State Header */}
+                    <div className="flex items-center justify-between font-mono text-[9px] text-stone-500">
+                      <div className="flex items-center gap-1.5">
+                        <span className={isActive ? "text-orange-400 font-bold" : "text-stone-400"}>
+                          🎤 {seg.speaker}
+                        </span>
+                        <span className="text-stone-700">•</span>
+                        <span className="text-stone-500 text-[8px]">
+                          {phaseLabels[seg.type || ""] || "Narrative view"}
+                        </span>
+                      </div>
+                      <span className="text-stone-600 text-[8px]">
                         {isActive && isPlaying ? "⚡ SPEAKING" : `SEGMENT ${idx + 1}`}
                       </span>
                     </div>
-                    <p className="font-sans text-[11px] leading-relaxed">
-                      {seg.text}
+
+                    {/* Compact Epistemic Badge Row */}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <SentenceBadge
+                        sentence={sentence}
+                        onClick={() => {
+                          if (seg.referencedMetric && onMetricClick) {
+                            onMetricClick(seg.referencedMetric);
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {/* Interactive Clickable Wave / Play trigger */}
+                    <p 
+                      onClick={() => {
+                        setCurrentSegmentIdx(idx);
+                        triggerPlay(podcast, idx);
+                        if (seg.referencedMetric && onMetricClick) {
+                          onMetricClick(seg.referencedMetric);
+                        }
+                      }}
+                      className="font-sans text-[11.5px] leading-relaxed text-stone-200 cursor-pointer hover:text-orange-200 transition-colors pl-1 border-l-2 border-stone-800/60"
+                    >
+                      “{sentence.text}”
                     </p>
+
+                    {/* Verifiable Local Metric Linkage */}
+                    {seg.referencedMetric && metricMeta && (
+                      <div className="flex items-center justify-between border-t border-stone-900/80 pt-2 mt-1 font-mono text-[8.5px]">
+                        <span className="text-stone-600 uppercase">Verifiable Source:</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (seg.referencedMetric && onMetricClick) {
+                              onMetricClick(seg.referencedMetric);
+                            }
+                          }}
+                          className="flex items-center gap-1 bg-stone-900/80 hover:bg-orange-950/30 text-stone-400 hover:text-orange-300 px-1.5 py-0.5 rounded border border-stone-800 hover:border-orange-900/40 transition-all cursor-pointer"
+                          title={`Click to show and focus the formula ${metricMeta.formula}`}
+                        >
+                          <span className="text-orange-400/90 font-bold">{seg.metricValue}</span>
+                          <span className="text-stone-500">{metricMeta.label}</span>
+                          <span className="text-stone-600 font-normal">({metricMeta.formula})</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}

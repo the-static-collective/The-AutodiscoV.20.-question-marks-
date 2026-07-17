@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, Radio, MessageSquare, Volume2, ShieldAlert, ArrowUpRight, Compass, LayoutDashboard, Disc } from "lucide-react";
+import { Sparkles, Radio, MessageSquare, Volume2, ShieldAlert, ArrowUpRight, Compass, LayoutDashboard, Disc, Leaf } from "lucide-react";
 import { FileEntry, Fossil, RadioMessage, LoopIt, LoopLifecycleState } from "./types";
 import UptimeMonitor from "./components/UptimeMonitor";
 import PoeticSandbox from "./components/PoeticSandbox";
@@ -11,6 +11,7 @@ import AlbumCompanion from "./components/AlbumCompanion";
 import DigestiveLifecycle from "./components/DigestiveLifecycle";
 import NetworkTheatre from "./components/NetworkTheatre";
 import PodcastWidget from "./components/PodcastWidget";
+import TranslationGreenhouse from "./components/TranslationGreenhouse";
 
 export default function App() {
   // Shared States
@@ -18,7 +19,7 @@ export default function App() {
   const [lemonScent, setLemonScent] = useState<number>(40);
   const [activeFileId, setActiveFileId] = useState<string>("f1");
   const [fossils, setFossils] = useState<Fossil[]>([]);
-  const [activeWorkspace, setActiveWorkspace] = useState<"gardener" | "companion">("companion");
+  const [activeWorkspace, setActiveWorkspace] = useState<"gardener" | "companion" | "greenhouse">("companion");
 
   // LoopIts state initialized with rich seeded lifecycle items
   const [loops, setLoops] = useState<LoopIt[]>([
@@ -220,6 +221,16 @@ function garbageCollect(memoryMap) {
     setDjMessages((prev) => [...prev, newMsg]);
   };
 
+  const handleMetricClick = (metricName: "loopCount" | "dustLevel" | "fossilCount" | "lemonScent" | "serverLoad") => {
+    setActiveWorkspace("greenhouse");
+    addRadioMessage(`🔍 Ref Segment Trace: Opening the Translation Greenhouse and Proof Browser to audit the dual provenance of "${metricName}".`);
+    
+    // Dispatch global event for instant focus in the Proof Browser
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("focus-proof-metric", { detail: metricName }));
+    }, 50);
+  };
+
   // Periodically prompt DJ feedback based on dust or load
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -329,6 +340,7 @@ function garbageCollect(memoryMap) {
             serverLoad={serverLoad}
             activeFileName={activeFile.name}
             onDjMessage={addRadioMessage}
+            onMetricClick={handleMetricClick}
           />
 
           {/* Core Workspace Switcher */}
@@ -352,6 +364,16 @@ function garbageCollect(memoryMap) {
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" /> Gardener Surface
+            </button>
+            <button
+              onClick={() => setActiveWorkspace("greenhouse")}
+              className={`px-3 py-1.5 rounded-lg font-sans text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                activeWorkspace === "greenhouse"
+                  ? "bg-stone-900 text-orange-400 border border-stone-800"
+                  : "text-stone-500 hover:text-stone-300"
+              }`}
+            >
+              <Leaf className="w-3.5 h-3.5" /> Translation Greenhouse
             </button>
           </div>
 
@@ -462,6 +484,17 @@ function garbageCollect(memoryMap) {
               </div>
             </div>
           </div>
+        ) : activeWorkspace === "greenhouse" ? (
+          /* Translation Greenhouse & Proof Browser */
+          <TranslationGreenhouse
+            dustLevel={averageDust}
+            loopCount={loops.length}
+            fossilCount={fossils.length}
+            lemonScent={lemonScent}
+            serverLoad={serverLoad}
+            activeFileName={activeFile?.name || "none"}
+            onDjMessage={addRadioMessage}
+          />
         ) : (
           /* Authenticated Gardener surface */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
