@@ -618,6 +618,195 @@ app.get("/api/tao/statements/:id", async (req, res) => {
   }
 });
 
+app.post("/api/tao/pollen/release", async (req, res) => {
+  const { eventId } = req.body;
+  if (!eventId) {
+    return res.status(400).json({ error: "Missing pinned statement event ID." });
+  }
+
+  try {
+    const supabase = getSupabase();
+
+    // 1. Validate original pinned eventId & 2. Retrieve/verify original event.
+    const { data: originalEvent, error: fetchError } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", eventId)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error("Failed to query original event:", fetchError);
+      return res.status(500).json({ error: `Original event retrieval error: ${fetchError.message}` });
+    }
+
+    if (!originalEvent) {
+      return res.status(404).json({ error: `Original event with ID ${eventId} was not found in the ledger.` });
+    }
+
+    // 3. Create traceId.
+    const traceId = crypto.randomUUID();
+
+    // Construct SeedPacket
+    const seedPacket = {
+      sourceNode: "autodisco-v20",
+      targetNodes: ["bananadash"],
+      traceId: traceId,
+      hop: 1
+    };
+
+    // 4. Persist POLLEN_RELEASED event to ledger.
+    const releaseEventId = crypto.randomUUID();
+    const releaseEvent = {
+      id: releaseEventId,
+      space_id: process.env.AUTODISCO_SPACE_ID || process.env.VITE_AUTODISCO_SPACE_ID,
+      type: "POLLEN_RELEASED",
+      author_kind: "SYSTEM",
+      content: {
+        original_event_id: eventId,
+        seed_packet: seedPacket
+      },
+      metadata: {
+        source: "autodisco-v20",
+        tao_version: "tao@1.0.0"
+      }
+    };
+
+    const { error: releaseError } = await supabase
+      .from("events")
+      .insert(releaseEvent);
+
+    if (releaseError) {
+      console.error("Failed to write POLLEN_RELEASED event:", releaseError);
+      return res.status(500).json({ error: `Release event write failed: ${releaseError.message}` });
+    }
+
+    // Helper to broadcast via Supabase Realtime channel
+    const broadcastRealtime = (supabaseClient: any, topic: string, eventName: string, payload: any): Promise<{ success: boolean; statusText?: string }> => {
+      return new Promise((resolve) => {
+        const channel = supabaseClient.channel(topic, {
+          config: {
+            broadcast: { ack: true }
+          }
+        });
+
+        let hasResolved = false;
+        const cleanupAndResolve = (success: boolean, text?: string) => {
+          if (hasResolved) return;
+          hasResolved = true;
+          try {
+            supabaseClient.removeChannel(channel);
+          } catch (e) {
+            console.error("Error removing channel:", e);
+          }
+          resolve({ success, statusText: text });
+        };
+
+        channel.subscribe(async (status: string, err?: any) => {
+          if (status === 'SUBSCRIBED') {
+            try {
+              const sendStatus = await channel.send({
+                type: 'broadcast',
+                event: eventName,
+                payload: payload
+              });
+              console.log(`Realtime broadcast to ${topic} sent with status:`, sendStatus);
+              if (sendStatus === 'ok' || sendStatus === 'sent' || (sendStatus && sendStatus.status === 'ok')) {
+                cleanupAndResolve(true, `Acknowledged: ${sendStatus}`);
+              } else {
+                cleanupAndResolve(false, `Unexpected send status: ${JSON.stringify(sendStatus)}`);
+              }
+            } catch (sendErr: any) {
+              console.error("Error in channel.send:", sendErr);
+              cleanupAndResolve(false, sendErr?.message || "Channel send threw error");
+            }
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error("Realtime channel subscription error:", err);
+            cleanupAndResolve(false, `Channel error: ${err?.message || "unknown subscription error"}`);
+          } else if (status === 'TIMED_OUT') {
+            cleanupAndResolve(false, "Subscription timed out");
+          }
+        });
+
+        // 3.5 second safety timeout
+        setTimeout(() => {
+          cleanupAndResolve(false, "Timeout waiting for broadcast response");
+        }, 3500);
+      });
+    };
+
+    // 5. Perform real websocket broadcast of `seed_packet` to witness:the-autodisco.
+    const broadcastRes = await broadcastRealtime(supabase, "witness:the-autodisco", "seed_packet", seedPacket);
+
+    // 6. Persist a SEED_PACKET audit event recording broadcast result, topic, event name, traceId, and parent event.
+    const broadcastAuditEventId = crypto.randomUUID();
+    const broadcastAuditEvent = {
+      id: broadcastAuditEventId,
+      space_id: process.env.AUTODISCO_SPACE_ID || process.env.VITE_AUTODISCO_SPACE_ID,
+      type: "SEED_PACKET",
+      author_kind: "SYSTEM",
+      content: {
+        seed_packet: seedPacket,
+        witness: "the-autodisco",
+        event_name: "seed_packet",
+        broadcast_success: broadcastRes.success,
+        broadcast_status: broadcastRes.statusText,
+        release_event_id: releaseEventId,
+        parent_event_id: eventId
+      },
+      metadata: {
+        source: "autodisco-v20",
+        tao_version: "tao@1.0.0"
+      }
+    };
+
+    const { error: auditError } = await supabase
+      .from("events")
+      .insert(broadcastAuditEvent);
+
+    if (auditError) {
+      console.error("Failed to write SEED_PACKET audit event:", auditError);
+      return res.status(500).json({
+        success: false,
+        error: `Audit event write failed: ${auditError.message}`,
+        traceId,
+        originalEventId: eventId,
+        releaseEventId,
+        broadcastAuditEventId,
+        seedPacket,
+        statusText: broadcastRes.statusText
+      });
+    }
+
+    // 7. Return sent/failed result without claiming delivery if realtime send fails.
+    if (!broadcastRes.success) {
+      return res.status(500).json({
+        success: false,
+        error: `Realtime broadcast failed: ${broadcastRes.statusText}`,
+        traceId,
+        originalEventId: eventId,
+        releaseEventId,
+        broadcastAuditEventId,
+        seedPacket,
+        statusText: broadcastRes.statusText
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      traceId,
+      originalEventId: eventId,
+      releaseEventId,
+      broadcastAuditEventId,
+      seedPacket,
+      statusText: broadcastRes.statusText
+    });
+
+  } catch (err: any) {
+    console.error("Pollen release operation threw error:", err);
+    return res.status(500).json({ error: err.message || "Failed to release pollen." });
+  }
+});
+
 // 5. Vite middleware for development or static serving for production
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

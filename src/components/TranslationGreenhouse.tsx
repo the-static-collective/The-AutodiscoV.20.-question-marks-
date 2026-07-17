@@ -179,10 +179,16 @@ export default function TranslationGreenhouse({
   const [fetchingReceiptId, setFetchingReceiptId] = useState<string | null>(null);
   const [receiptError, setReceiptError] = useState<string | null>(null);
 
+  const [releasingPollen, setReleasingPollen] = useState<boolean>(false);
+  const [pollenReleaseResult, setPollenReleaseResult] = useState<any | null>(null);
+  const [pollenReleaseError, setPollenReleaseError] = useState<string | null>(null);
+
   const handleOpenReceipt = async (idOrLedgerAddress: string) => {
     const uuid = idOrLedgerAddress.replace("ledger://events/", "");
     setFetchingReceiptId(uuid);
     setReceiptError(null);
+    setPollenReleaseResult(null);
+    setPollenReleaseError(null);
     try {
       const response = await fetch(`/api/tao/statements/${uuid}`);
       if (!response.ok) {
@@ -195,6 +201,34 @@ export default function TranslationGreenhouse({
       setReceiptError(err.message || "Failed to load receipt from ledger.");
     } finally {
       setFetchingReceiptId(null);
+    }
+  };
+
+  const handleReleasePollen = async () => {
+    if (!activeReceipt || !activeReceipt.id) return;
+    setReleasingPollen(true);
+    setPollenReleaseError(null);
+    setPollenReleaseResult(null);
+
+    try {
+      const response = await fetch("/api/tao/pollen/release", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: activeReceipt.id })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Failed to release pollen (${response.status})`);
+      }
+
+      const data = await response.json();
+      setPollenReleaseResult(data);
+    } catch (err: any) {
+      console.error("Pollen release failed:", err);
+      setPollenReleaseError(err.message || "Failed to broadcast SeedPacket.");
+    } finally {
+      setReleasingPollen(false);
     }
   };
 
@@ -2077,6 +2111,143 @@ export default function TranslationGreenhouse({
                         <span className="text-cyan-400 font-bold">{activeReceipt.content?.mode}</span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Pollen Release Section */}
+                  <div className="space-y-3 bg-stone-950/80 border border-stone-850 p-4 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-stone-600 text-[8px] uppercase block">Federated Dispersal</span>
+                        <span className="text-stone-300 font-bold text-xs uppercase tracking-wide flex items-center gap-1.5 font-sans">
+                          <Leaf className="w-3.5 h-3.5 text-orange-400" />
+                          Release Pollen Action
+                        </span>
+                      </div>
+                      
+                      <button
+                        disabled={releasingPollen}
+                        onClick={handleReleasePollen}
+                        className={`text-[9px] px-3 py-1.5 rounded-lg font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 select-none ${
+                          releasingPollen
+                            ? "bg-orange-950/20 text-orange-400 border border-orange-900/30 animate-pulse cursor-wait"
+                            : pollenReleaseResult
+                              ? "bg-emerald-950/30 text-emerald-400 border border-emerald-900/40 cursor-default"
+                              : "bg-orange-950/40 text-orange-400 border border-orange-800/40 hover:bg-orange-950/60"
+                        }`}
+                      >
+                        {releasingPollen ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin text-orange-400" />
+                            <span>BROADCASTING...</span>
+                          </>
+                        ) : pollenReleaseResult ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span>DISPERSED</span>
+                          </>
+                        ) : (
+                          <>
+                            <Compass className="w-3 h-3" />
+                            <span>RELEASE POLLEN</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <p className="text-stone-400 text-[10px] font-sans leading-normal">
+                      Manually package this truth claim as a secure <code className="text-orange-400 font-mono text-[9px]">SeedPacket</code> and broadcast it to <code className="text-stone-300 font-mono text-[9px]">witness:the-autodisco</code> targeted for <code className="text-stone-300 font-mono text-[9px]">bananadash</code>.
+                    </p>
+
+                    {/* Status Feedback Display */}
+                    {pollenReleaseResult && (
+                      <div className="mt-3 space-y-2.5 pt-2.5 border-t border-stone-900/60 font-mono text-[9.5px]">
+                        <div className="bg-emerald-950/10 border border-emerald-900/30 rounded p-2.5 space-y-2 text-emerald-400/90">
+                          <div className="flex items-center gap-1.5 font-bold text-[8.5px] uppercase tracking-wider text-emerald-400">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Pollen Dispersal Verification Success
+                          </div>
+
+                          {/* Checklist */}
+                          <div className="space-y-1 pl-1 text-[9px] border-l border-emerald-900/40 mt-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-emerald-500">✓</span>
+                              <span className="text-stone-400">Ledger persisted:</span>
+                              <span className="text-emerald-400 font-bold">TRUE (POLLEN_RELEASED & SEED_PACKET written)</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-emerald-500">✓</span>
+                              <span className="text-stone-400">Realtime broadcast acknowledged:</span>
+                              <span className="text-emerald-400 font-bold">TRUE</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-stone-500">▪</span>
+                              <span className="text-stone-400">channel:</span>
+                              <span className="text-stone-300 font-bold">witness:the-autodisco</span>
+                            </div>
+                          </div>
+
+                          {/* Details */}
+                          <div className="space-y-1.5 pt-1.5 text-[8.5px] border-t border-emerald-900/20">
+                            <div>
+                              <span className="text-stone-600 text-[7.5px] uppercase block">traceId</span>
+                              <span className="text-stone-300 font-bold select-all break-all">{pollenReleaseResult.traceId}</span>
+                            </div>
+                            <div>
+                              <span className="text-stone-600 text-[7.5px] uppercase block">source event id</span>
+                              <span className="text-stone-300 font-bold select-all break-all">{pollenReleaseResult.originalEventId}</span>
+                            </div>
+                            <div>
+                              <span className="text-stone-600 text-[7.5px] uppercase block">release event id</span>
+                              <span className="text-stone-300 font-bold select-all break-all">{pollenReleaseResult.releaseEventId}</span>
+                            </div>
+                            <div>
+                              <span className="text-stone-600 text-[7.5px] uppercase block">broadcast audit event id</span>
+                              <span className="text-stone-300 font-bold select-all break-all">{pollenReleaseResult.broadcastAuditEventId}</span>
+                            </div>
+                          </div>
+
+                          <div className="pt-1.5 border-t border-emerald-950/50">
+                            <span className="text-stone-600 text-[7.5px] uppercase block">SeedPacket Envelope</span>
+                            <pre className="text-[8.5px] bg-stone-950/60 p-2 rounded text-stone-400 overflow-x-auto leading-normal mt-0.5">
+                              {JSON.stringify(pollenReleaseResult.seedPacket, null, 2)}
+                            </pre>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {pollenReleaseError && (
+                      <div className="mt-2 bg-rose-950/20 border border-rose-900/30 rounded p-2.5 text-rose-400 text-[9.5px]">
+                        <div className="flex items-center gap-1.5 font-bold text-[8.5px] uppercase tracking-wider block mb-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                          ✗ Dispersal Broadcast Failure
+                        </div>
+
+                        {/* Failed checklist */}
+                        <div className="space-y-1 pl-1 text-[9px] border-l border-rose-900/40 my-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-rose-500">✗</span>
+                            <span className="text-stone-400">Ledger persisted:</span>
+                            <span className="text-rose-400 font-bold">FALSE / PARTIAL</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-rose-500">✗</span>
+                            <span className="text-stone-400">Realtime broadcast acknowledged:</span>
+                            <span className="text-rose-400 font-bold">FALSE</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-stone-500">▪</span>
+                            <span className="text-stone-400">channel:</span>
+                            <span className="text-stone-300 font-bold">witness:the-autodisco</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <span className="text-stone-600 text-[7.5px] uppercase block">failure reason</span>
+                          <p className="text-rose-300 font-sans mt-0.5">{pollenReleaseError}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Associated Metadata Object */}

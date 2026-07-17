@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS public.events (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Support for setups using an enum type for event types:
+-- alter type public.event_type add value if not exists 'POLLEN_RELEASED';
+-- alter type public.event_type add value if not exists 'SEED_PACKET';
+
 -- 2. Enable Row Level Security (RLS) on the events table
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 
