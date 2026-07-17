@@ -718,6 +718,166 @@ export default function TranslationGreenhouse({
 
   const proof = getProofData(selectedProofMetric);
 
+  const getEpistemicAddresses = (metric: "loopCount" | "dustLevel" | "fossilCount" | "lemonScent" | "serverLoad") => {
+    switch (metric) {
+      case "loopCount":
+        return [
+          {
+            mode: "observed" as const,
+            label: "OBSERVED (Evidence)",
+            text: `LOOP_INGESTED (seed_1) at 3:05 AM: "Porch light flicker cadence observed at 120 bpm."`,
+            address: "ledger://circulate/seed_1",
+            details: "Raw key-signed event captured locally."
+          },
+          {
+            mode: "derived" as const,
+            label: "DERIVED (Computation)",
+            text: `Derived value: loopCount = ${loopCount} loops active in current snapshot.`,
+            address: "metrics://count/loops@1.0.0",
+            details: "Summation of non-redacted active loops."
+          },
+          {
+            mode: "metaphor" as const,
+            label: "METAPHOR (Symbol)",
+            text: `Ontology Symbol: spoon@1.0.0. A quiet witness that has become semantically salient.`,
+            address: "ontology://witness/spoon@1.0.0",
+            details: "Registered symbolic rendering of active attention loops."
+          },
+          {
+            mode: "interpretation" as const,
+            label: "INTERPRETATION (Invitation)",
+            text: `"${loopCount} distinct heartbeats circulating. Sits low in the silence, waiting for your attention."`,
+            address: "cadence://tts/loops_contemplation",
+            details: "Offered reading designed for human-system resonance."
+          }
+        ];
+      case "dustLevel":
+        return [
+          {
+            mode: "observed" as const,
+            label: "OBSERVED (Evidence)",
+            text: `FILE_REGISTRY_SNAPSHOT at 2:40 AM: "f2.grace has 80% unpolished lines."`,
+            address: "ledger://file_watcher/snapshot_f2",
+            details: "Direct line analyzer report on unpolished bytes."
+          },
+          {
+            mode: "derived" as const,
+            label: "DERIVED (Computation)",
+            text: `Derived value: average dustLevel = ${dustLevel}% across 3 active files.`,
+            address: "metrics://ratio/dust@1.0.0",
+            details: "Calculation of neglected vs shined lines."
+          },
+          {
+            mode: "metaphor" as const,
+            label: "METAPHOR (Symbol)",
+            text: `Ontology Symbol: rising_silt@1.0.0. Grey layers are resting on unshielded variables.`,
+            address: "ontology://silt/density@1.0.0",
+            details: "Coded representation of neglect as physical grey silt."
+          },
+          {
+            mode: "interpretation" as const,
+            label: "INTERPRETATION (Invitation)",
+            text: `"A grey quietness rests on the code. Move your cursor over the editor to polish the glass."`,
+            address: "cadence://tts/silt_warning",
+            details: "Invitation prompting the traveler to care for their code."
+          }
+        ];
+      case "fossilCount":
+        return [
+          {
+            mode: "observed" as const,
+            label: "OBSERVED (Evidence)",
+            text: `FOSSIL_CRYSTALLIZE (dead_alloc) at 2:55 AM: "Allocated size 24MB crystallized as permanent stone."`,
+            address: "ledger://fossil_collector/alloc_24",
+            details: "Signed record of non-digestible garbage collection."
+          },
+          {
+            mode: "derived" as const,
+            label: "DERIVED (Computation)",
+            text: `Derived value: fossilCount = ${fossilCount} crystallized memory artifacts.`,
+            address: "metrics://count/fossils@1.0.0",
+            details: "Total count of crystalline memory pits on bottom shelves."
+          },
+          {
+            mode: "metaphor" as const,
+            label: "METAPHOR (Symbol)",
+            text: `Ontology Symbol: peach_pit@1.0.0. Shattered memory bones locked in the bottom shelf.`,
+            address: "ontology://peach_pit/held@1.0.0",
+            details: "Metaphor of solid peach pits bypassing standard deletion."
+          },
+          {
+            mode: "interpretation" as const,
+            label: "INTERPRETATION (Invitation)",
+            text: `"Crystallized memory stones lying in the bottom drawer. They do not fade."`,
+            address: "cadence://tts/fossil_monologue",
+            details: "A meditation on the permanence of historic system states."
+          }
+        ];
+      case "lemonScent":
+        return [
+          {
+            mode: "observed" as const,
+            label: "OBSERVED (Evidence)",
+            text: `METADATA_SQUEEZE_CREATED at recently: "SqueezePanel recorded intensity pull of ${lemonScent}%."`,
+            address: "ledger://squeeze_sensor/pull_latest",
+            details: "Sensory event captured from traveler interaction."
+          },
+          {
+            mode: "derived" as const,
+            label: "DERIVED (Computation)",
+            text: `Derived value: lemonScent = ${lemonScent}% average squeezing intensity.`,
+            address: "metrics://intensity/scent@1.0.0",
+            details: "Pulp calculation over last squeeze window."
+          },
+          {
+            mode: "metaphor" as const,
+            label: "METAPHOR (Symbol)",
+            text: `Ontology Symbol: lemon@1.0.0. Active squeezing of code pulp metadata.`,
+            address: "ontology://citrus/juice@1.0.0",
+            details: "Squeeze metaphor showing extraction of affirmative proverbs."
+          },
+          {
+            mode: "interpretation" as const,
+            label: "INTERPRETATION (Invitation)",
+            text: `"Extracting affirmative proverbs from the code pulp. Warm citrus in the corners."`,
+            address: "cadence://tts/lemon_proverb",
+            details: "Interactive invitation celebrating active metadata compression."
+          }
+        ];
+      case "serverLoad":
+        return [
+          {
+            mode: "observed" as const,
+            label: "OBSERVED (Evidence)",
+            text: `UPTIME_VOLTAGE_POLL at real-time: "Server load is ${serverLoad}% under voltage load."`,
+            address: "ledger://uptime_monitor/poll_latest",
+            details: "Ping and CPU bus voltage reading from container core."
+          },
+          {
+            mode: "derived" as const,
+            label: "DERIVED (Computation)",
+            text: `Derived value: serverLoad = ${serverLoad}% CPU and voltage strain.`,
+            address: "metrics://load/voltage@1.0.0",
+            details: "Weighted load factor over active processing loops."
+          },
+          {
+            mode: "metaphor" as const,
+            label: "METAPHOR (Symbol)",
+            text: `Ontology Symbol: server_grit@1.0.0. Quiet, hydrated, and ready for work.`,
+            address: "ontology://grit/stress@1.0.0",
+            details: "Physical representation of server load as grit friction."
+          },
+          {
+            mode: "interpretation" as const,
+            label: "INTERPRETATION (Invitation)",
+            text: `"The servers are resting. The voltage is steady and cool."`,
+            address: "cadence://tts/resting_monologue",
+            details: "An assurance of system peace over modern frantic speed."
+          }
+        ];
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 animate-fade-in text-stone-200">
       
@@ -1386,6 +1546,64 @@ export default function TranslationGreenhouse({
                   {m.label}
                 </button>
               ))}
+            </div>
+
+            {/* The Epistemic Address Matrix (TAO v1) */}
+            <div className="bg-stone-950 border border-stone-850/60 rounded-xl p-4 flex flex-col gap-3 mb-4">
+              <div className="flex items-center justify-between border-b border-stone-900 pb-2">
+                <div className="flex items-center gap-1.5 font-mono text-[10px] text-orange-400 font-bold">
+                  <Layers className="w-3.5 h-3.5 text-orange-500" />
+                  <span>THE EPISTEMIC ADDRESS MATRIX (TAO v1)</span>
+                </div>
+                <span className="text-[8px] bg-stone-900 text-stone-500 border border-stone-850 px-1.5 py-0.5 rounded font-mono font-bold">
+                  MANDATORY ADDRESSING
+                </span>
+              </div>
+              <p className="font-sans text-[10.5px] text-stone-500 leading-relaxed">
+                Under TAO protocol, every sentence is stamped with its exact epistemic mode (observed, derived, metaphor, invitation) and versioned registry locator.
+              </p>
+
+              <div className="space-y-2.5 mt-1">
+                {getEpistemicAddresses(selectedProofMetric).map((addr) => {
+                  let badgeColors = "";
+                  switch (addr.mode) {
+                    case "observed":
+                      badgeColors = "bg-emerald-950/40 text-emerald-400 border-emerald-800/40";
+                      break;
+                    case "derived":
+                      badgeColors = "bg-cyan-950/40 text-cyan-400 border-cyan-800/40";
+                      break;
+                    case "metaphor":
+                      badgeColors = "bg-amber-950/40 text-amber-400 border-amber-800/40";
+                      break;
+                    case "interpretation":
+                      badgeColors = "bg-stone-900/60 text-stone-300 border-stone-750";
+                      break;
+                  }
+
+                  return (
+                    <div 
+                      key={addr.mode}
+                      className="group/item border border-stone-900 bg-stone-950 hover:border-stone-800 p-2.5 rounded-lg transition-all"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold tracking-wider border ${badgeColors}`}>
+                          {addr.label}
+                        </span>
+                        <span className="font-mono text-[8px] text-stone-600 group-hover/item:text-orange-400 transition-colors">
+                          {addr.address}
+                        </span>
+                      </div>
+                      <p className="font-sans text-[11.5px] leading-relaxed text-stone-200 font-medium pl-1 border-l border-stone-900 group-hover/item:border-stone-700 transition-all">
+                        {addr.mode === "interpretation" ? `“${addr.text}”` : addr.text}
+                      </p>
+                      <div className="mt-1 text-[9px] font-mono text-stone-500 leading-normal pl-1 opacity-0 max-h-0 group-hover/item:opacity-100 group-hover/item:max-h-10 overflow-hidden transition-all duration-300">
+                        {addr.details}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Double Provenance Path visualization */}
