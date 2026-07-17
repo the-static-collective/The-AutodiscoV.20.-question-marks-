@@ -1,0 +1,6 @@
+{
+  "name": "The Autodisco",
+  "description": "An immersive audio-visual workspace and generative radio synthesizing poetic software ideas with ambient synthesizer drones.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
