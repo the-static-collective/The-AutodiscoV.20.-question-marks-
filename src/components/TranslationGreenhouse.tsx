@@ -27,7 +27,8 @@ import {
   ShieldAlert,
   Flame,
   Volume2,
-  RefreshCw
+  RefreshCw,
+  Pin
 } from "lucide-react";
 
 interface TranslationGreenhouseProps {
@@ -127,6 +128,52 @@ export default function TranslationGreenhouse({
   const [selectedProofMetric, setSelectedProofMetric] = useState<
     "loopCount" | "dustLevel" | "fossilCount" | "lemonScent" | "serverLoad"
   >("loopCount");
+
+  // Pinned Supabase ledger statements
+  const [pinnedStatements, setPinnedStatements] = useState<Record<string, { id: string; ledgerAddress: string; error?: string; loading?: boolean }>>({});
+
+  const handlePinStatement = async (addr: { mode: string; label: string; text: string; address: string; details: string }) => {
+    const key = `${selectedProofMetric}_${addr.mode}`;
+    setPinnedStatements(prev => ({
+      ...prev,
+      [key]: { id: "", ledgerAddress: "", loading: true }
+    }));
+
+    try {
+      const response = await fetch("/api/tao/statements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: addr.text,
+          mode: addr.mode.toUpperCase(), // "OBSERVED", "DERIVED", "METAPHOR", "INTERPRETATION"
+          metric: selectedProofMetric,
+          addresses: {
+            metrics: "metrics://count/loops@1.0.0",
+            ontology: "ontology://witness/spoon@1.0.0",
+            cadence: "cadence://tts/loops_contemplation",
+            target_uri: addr.address
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || `HTTP error ${response.status}`);
+      }
+
+      const data = await response.json();
+      setPinnedStatements(prev => ({
+        ...prev,
+        [key]: { id: data.id, ledgerAddress: data.ledger_address, loading: false }
+      }));
+    } catch (err: any) {
+      console.error("Failed to pin statement:", err);
+      setPinnedStatements(prev => ({
+        ...prev,
+        [key]: { id: "", ledgerAddress: "", error: err.message || "Failed to publish", loading: false }
+      }));
+    }
+  };
 
   // State for current T5 generated candidate text
   const [candidates, setCandidates] = useState<{
@@ -1600,6 +1647,56 @@ export default function TranslationGreenhouse({
                       <div className="mt-1 text-[9px] font-mono text-stone-500 leading-normal pl-1 opacity-0 max-h-0 group-hover/item:opacity-100 group-hover/item:max-h-10 overflow-hidden transition-all duration-300">
                         {addr.details}
                       </div>
+
+                      {/* Interactive Ledger Scribe integration */}
+                      {(() => {
+                        const pinState = pinnedStatements[`${selectedProofMetric}_${addr.mode}`];
+                        return (
+                          <div className="mt-2.5 pt-2 border-t border-stone-900/60 flex items-center justify-between gap-2">
+                            <span className="text-[8.5px] font-mono text-stone-500 truncate max-w-[160px] sm:max-w-xs">
+                              {pinState?.ledgerAddress ? (
+                                <span className="text-emerald-400 flex items-center gap-1 font-bold">
+                                  <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                                  {pinState.ledgerAddress}
+                                </span>
+                              ) : pinState?.error ? (
+                                <span className="text-rose-400 font-bold">Error: {pinState.error}</span>
+                              ) : (
+                                <span className="text-stone-600">Not anchored in ledger</span>
+                              )}
+                            </span>
+                            
+                            <button
+                              disabled={pinState?.loading || !!pinState?.ledgerAddress}
+                              onClick={() => handlePinStatement(addr)}
+                              className={`text-[8px] px-2 py-0.5 rounded font-mono font-bold transition-all cursor-pointer flex items-center gap-1 select-none flex-shrink-0 ${
+                                pinState?.ledgerAddress
+                                  ? "bg-stone-900/80 text-stone-500 border border-stone-850 cursor-default"
+                                  : pinState?.loading
+                                    ? "bg-orange-950/20 text-orange-400 border border-orange-900/30 animate-pulse"
+                                    : "bg-orange-950/40 text-orange-400 border border-orange-800/40 hover:bg-orange-950/60"
+                              }`}
+                            >
+                              {pinState?.loading ? (
+                                <>
+                                  <Loader2 className="w-2.5 h-2.5 animate-spin text-orange-400" />
+                                  <span>PUBLISHING...</span>
+                                </>
+                              ) : pinState?.ledgerAddress ? (
+                                <>
+                                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                                  <span>VERIFIED</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Pin className="w-2.5 h-2.5" />
+                                  <span>PIN TO LEDGER</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}

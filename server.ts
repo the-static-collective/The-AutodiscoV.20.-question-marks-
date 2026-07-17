@@ -3,8 +3,23 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
+
+// Lazy Supabase client initialization
+let supabaseClient: any = null;
+function getSupabase() {
+  if (!supabaseClient) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!url || !key) {
+      throw new Error("SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY is missing from environment variables.");
+    }
+    supabaseClient = createClient(url, key);
+  }
+  return supabaseClient;
+}
 
 const app = express();
 const PORT = 3000;
@@ -516,6 +531,60 @@ Return a JSON object with this EXACT schema:
       segments: fallbackSegments,
       activitySummary: "Procedural fallback due to connection dissolve"
     });
+  }
+});
+
+app.post("/api/tao/statements", async (req, res) => {
+  const { text, mode, metric, addresses = {}, metadata = {} } = req.body;
+
+  const validModes = new Set([
+    "OBSERVED",
+    "DERIVED",
+    "METAPHOR",
+    "INTERPRETATION",
+  ]);
+
+  if (
+    typeof text !== "string" ||
+    !validModes.has(mode) ||
+    typeof metric !== "string"
+  ) {
+    return res.status(400).json({
+      error: "Expected text, a valid TAO mode, and metric.",
+    });
+  }
+
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("events")
+      .insert({
+        id: crypto.randomUUID(),
+        space_id: process.env.AUTODISCO_SPACE_ID,
+        type: "SUMMARY_WRITTEN",
+        author_kind: "SYSTEM",
+        content: { text, mode, metric, addresses },
+        metadata: {
+          source: "autodisco-v20",
+          tao_version: "tao@1.0.0",
+          ...metadata,
+        },
+      })
+      .select("id, created_at, content")
+      .single();
+
+    if (error) {
+      console.error("TAO ledger write failed:", error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    return res.status(201).json({
+      ...data,
+      ledger_address: `ledger://events/${data.id}`,
+    });
+  } catch (err: any) {
+    console.error("Supabase operation threw error:", err);
+    return res.status(500).json({ error: err.message || "Failed to initialize or connect to Supabase." });
   }
 });
 
