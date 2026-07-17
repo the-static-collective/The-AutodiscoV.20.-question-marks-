@@ -175,6 +175,29 @@ export default function TranslationGreenhouse({
     }
   };
 
+  const [activeReceipt, setActiveReceipt] = useState<any | null>(null);
+  const [fetchingReceiptId, setFetchingReceiptId] = useState<string | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+
+  const handleOpenReceipt = async (idOrLedgerAddress: string) => {
+    const uuid = idOrLedgerAddress.replace("ledger://events/", "");
+    setFetchingReceiptId(uuid);
+    setReceiptError(null);
+    try {
+      const response = await fetch(`/api/tao/statements/${uuid}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch receipt (${response.status})`);
+      }
+      const data = await response.json();
+      setActiveReceipt(data);
+    } catch (err: any) {
+      console.error("Receipt loading failed:", err);
+      setReceiptError(err.message || "Failed to load receipt from ledger.");
+    } finally {
+      setFetchingReceiptId(null);
+    }
+  };
+
   // State for current T5 generated candidate text
   const [candidates, setCandidates] = useState<{
     planner: string;
@@ -766,6 +789,15 @@ export default function TranslationGreenhouse({
   const proof = getProofData(selectedProofMetric);
 
   const getEpistemicAddresses = (metric: "loopCount" | "dustLevel" | "fossilCount" | "lemonScent" | "serverLoad") => {
+    let pinnedAddress = "";
+    for (const m of ["observed", "derived", "metaphor", "interpretation"]) {
+      const pin = pinnedStatements[`${metric}_${m}`];
+      if (pin?.ledgerAddress) {
+        pinnedAddress = pin.ledgerAddress;
+        break;
+      }
+    }
+
     switch (metric) {
       case "loopCount":
         return [
@@ -773,7 +805,7 @@ export default function TranslationGreenhouse({
             mode: "observed" as const,
             label: "OBSERVED (Evidence)",
             text: `LOOP_INGESTED (seed_1) at 3:05 AM: "Porch light flicker cadence observed at 120 bpm."`,
-            address: "ledger://circulate/seed_1",
+            address: pinnedAddress || "ledger://circulate/seed_1",
             details: "Raw key-signed event captured locally."
           },
           {
@@ -804,7 +836,7 @@ export default function TranslationGreenhouse({
             mode: "observed" as const,
             label: "OBSERVED (Evidence)",
             text: `FILE_REGISTRY_SNAPSHOT at 2:40 AM: "f2.grace has 80% unpolished lines."`,
-            address: "ledger://file_watcher/snapshot_f2",
+            address: pinnedAddress || "ledger://file_watcher/snapshot_f2",
             details: "Direct line analyzer report on unpolished bytes."
           },
           {
@@ -835,7 +867,7 @@ export default function TranslationGreenhouse({
             mode: "observed" as const,
             label: "OBSERVED (Evidence)",
             text: `FOSSIL_CRYSTALLIZE (dead_alloc) at 2:55 AM: "Allocated size 24MB crystallized as permanent stone."`,
-            address: "ledger://fossil_collector/alloc_24",
+            address: pinnedAddress || "ledger://fossil_collector/alloc_24",
             details: "Signed record of non-digestible garbage collection."
           },
           {
@@ -866,7 +898,7 @@ export default function TranslationGreenhouse({
             mode: "observed" as const,
             label: "OBSERVED (Evidence)",
             text: `METADATA_SQUEEZE_CREATED at recently: "SqueezePanel recorded intensity pull of ${lemonScent}%."`,
-            address: "ledger://squeeze_sensor/pull_latest",
+            address: pinnedAddress || "ledger://squeeze_sensor/pull_latest",
             details: "Sensory event captured from traveler interaction."
           },
           {
@@ -897,7 +929,7 @@ export default function TranslationGreenhouse({
             mode: "observed" as const,
             label: "OBSERVED (Evidence)",
             text: `UPTIME_VOLTAGE_POLL at real-time: "Server load is ${serverLoad}% under voltage load."`,
-            address: "ledger://uptime_monitor/poll_latest",
+            address: pinnedAddress || "ledger://uptime_monitor/poll_latest",
             details: "Ping and CPU bus voltage reading from container core."
           },
           {
@@ -1653,7 +1685,7 @@ export default function TranslationGreenhouse({
                         const pinState = pinnedStatements[`${selectedProofMetric}_${addr.mode}`];
                         return (
                           <div className="mt-2.5 pt-2 border-t border-stone-900/60 flex items-center justify-between gap-2">
-                            <span className="text-[8.5px] font-mono text-stone-500 truncate max-w-[160px] sm:max-w-xs">
+                            <span className="text-[8.5px] font-mono text-stone-500 truncate max-w-[150px] sm:max-w-xs">
                               {pinState?.ledgerAddress ? (
                                 <span className="text-emerald-400 flex items-center gap-1 font-bold">
                                   <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
@@ -1666,34 +1698,49 @@ export default function TranslationGreenhouse({
                               )}
                             </span>
                             
-                            <button
-                              disabled={pinState?.loading || !!pinState?.ledgerAddress}
-                              onClick={() => handlePinStatement(addr)}
-                              className={`text-[8px] px-2 py-0.5 rounded font-mono font-bold transition-all cursor-pointer flex items-center gap-1 select-none flex-shrink-0 ${
-                                pinState?.ledgerAddress
-                                  ? "bg-stone-900/80 text-stone-500 border border-stone-850 cursor-default"
-                                  : pinState?.loading
-                                    ? "bg-orange-950/20 text-orange-400 border border-orange-900/30 animate-pulse"
-                                    : "bg-orange-950/40 text-orange-400 border border-orange-800/40 hover:bg-orange-950/60"
-                              }`}
-                            >
-                              {pinState?.loading ? (
-                                <>
-                                  <Loader2 className="w-2.5 h-2.5 animate-spin text-orange-400" />
-                                  <span>PUBLISHING...</span>
-                                </>
-                              ) : pinState?.ledgerAddress ? (
-                                <>
-                                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                                  <span>VERIFIED</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Pin className="w-2.5 h-2.5" />
-                                  <span>PIN TO LEDGER</span>
-                                </>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {pinState?.ledgerAddress && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenReceipt(pinState.id || pinState.ledgerAddress);
+                                  }}
+                                  className="text-[8px] px-2 py-0.5 rounded font-mono font-bold transition-all cursor-pointer flex items-center gap-1 select-none bg-stone-900 text-emerald-400 border border-emerald-800/40 hover:bg-emerald-950/40"
+                                >
+                                  <FileText className="w-2.5 h-2.5" />
+                                  <span>OPEN RECEIPT</span>
+                                </button>
                               )}
-                            </button>
+
+                              <button
+                                disabled={pinState?.loading || !!pinState?.ledgerAddress}
+                                onClick={() => handlePinStatement(addr)}
+                                className={`text-[8px] px-2 py-0.5 rounded font-mono font-bold transition-all cursor-pointer flex items-center gap-1 select-none flex-shrink-0 ${
+                                  pinState?.ledgerAddress
+                                    ? "bg-stone-900/80 text-emerald-400/80 border border-stone-850 cursor-default"
+                                    : pinState?.loading
+                                      ? "bg-orange-950/20 text-orange-400 border border-orange-900/30 animate-pulse"
+                                      : "bg-orange-950/40 text-orange-400 border border-orange-800/40 hover:bg-orange-950/60"
+                                }`}
+                              >
+                                {pinState?.loading ? (
+                                  <>
+                                    <Loader2 className="w-2.5 h-2.5 animate-spin text-orange-400" />
+                                    <span>PUBLISHING...</span>
+                                  </>
+                                ) : pinState?.ledgerAddress ? (
+                                  <>
+                                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                                    <span>VERIFIED</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Pin className="w-2.5 h-2.5" />
+                                    <span>PIN TO LEDGER</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         );
                       })()}
@@ -1920,6 +1967,148 @@ export default function TranslationGreenhouse({
         </div>
 
       </div>
+
+      {/* Dynamic Receipt Modal Overlay (TAO v1 Self-Referential Evidence Browser) */}
+      {(activeReceipt || fetchingReceiptId || receiptError) && (
+        <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-stone-900 border border-stone-850 rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl relative flex flex-col max-h-[85vh]">
+            
+            {/* Header */}
+            <div className="border-b border-stone-850 p-4 px-6 flex items-center justify-between bg-stone-950">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="font-sans font-bold text-stone-100 text-xs sm:text-sm uppercase tracking-wide">
+                    TAO LEDGER TRANSACTION RECEIPT
+                  </h3>
+                  <p className="font-mono text-[8px] text-stone-500 uppercase tracking-widest">
+                    Authentic Evidence Core (Verified in Real-Time)
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setActiveReceipt(null);
+                  setReceiptError(null);
+                }}
+                className="text-stone-400 hover:text-stone-200 text-[9px] font-mono border border-stone-800 hover:border-stone-700 bg-stone-900 px-2 py-1 rounded cursor-pointer transition-all"
+              >
+                CLOSE [esc]
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="p-6 overflow-y-auto space-y-4 font-mono text-[10.5px] text-stone-300">
+              {fetchingReceiptId ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                  <Loader2 className="w-8 h-8 text-orange-400 animate-spin" />
+                  <span className="text-stone-400 text-[10px] uppercase tracking-wider font-bold">
+                    Retrieving Ledger Segment {fetchingReceiptId.substring(0, 8)}...
+                  </span>
+                </div>
+              ) : receiptError ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-3 bg-rose-950/20 border border-rose-900/40 rounded-xl p-4">
+                  <XCircle className="w-8 h-8 text-rose-500" />
+                  <span className="text-rose-400 text-[10px] font-bold uppercase">
+                    Ledger Dissolve Error
+                  </span>
+                  <p className="text-stone-400 text-center font-sans text-xs">
+                    {receiptError}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Status Indicator */}
+                  <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-xl p-4 flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+                    <div>
+                      <span className="text-emerald-400 font-bold uppercase text-[9.5px] block">
+                        STATE: FULLY RESOLVED & COALESCED
+                      </span>
+                      <span className="text-stone-400 text-[10px] block leading-snug font-sans">
+                        Immutable truth claim anchored in Supabase space ledger.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Transaction Details */}
+                  <div className="space-y-3 bg-stone-950/80 border border-stone-850 p-4 rounded-xl">
+                    <div>
+                      <span className="text-stone-600 text-[8px] uppercase block">Ledger Address URI</span>
+                      <span className="text-emerald-400 font-bold select-all break-all text-[10px]">
+                        ledger://events/{activeReceipt.id}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-stone-600 text-[8px] uppercase block">Published At</span>
+                        <span className="text-stone-300 font-medium font-sans">
+                          {new Date(activeReceipt.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-stone-600 text-[8px] uppercase block">TAO Version</span>
+                        <span className="text-orange-400 font-bold">
+                          {activeReceipt.metadata?.tao_version || "tao@1.0.0"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-stone-900 pt-2">
+                      <span className="text-stone-600 text-[8px] uppercase block">Author Kind</span>
+                      <span className="text-stone-300 font-bold">SYSTEM (V.20 Scribe)</span>
+                    </div>
+                  </div>
+
+                  {/* Stored Content */}
+                  <div className="space-y-2 bg-stone-950/80 border border-stone-850 p-4 rounded-xl">
+                    <span className="text-stone-600 text-[8px] uppercase block">Stored Core Statement</span>
+                    <p className="text-stone-200 font-medium font-sans text-xs italic leading-relaxed border-l-2 border-emerald-500 pl-3">
+                      “{activeReceipt.content?.text}”
+                    </p>
+                    <div className="flex gap-4 pt-1 text-[10px]">
+                      <div>
+                        <span className="text-stone-600 text-[8px] uppercase block">Target Metric</span>
+                        <span className="text-amber-400 font-bold">.{activeReceipt.content?.metric}</span>
+                      </div>
+                      <div>
+                        <span className="text-stone-600 text-[8px] uppercase block">Epistemic Mode</span>
+                        <span className="text-cyan-400 font-bold">{activeReceipt.content?.mode}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Associated Metadata Object */}
+                  <div className="space-y-1.5">
+                    <span className="text-stone-600 text-[8px] uppercase block pl-1">Envelope Metadata</span>
+                    <pre className="text-[9.5px] bg-stone-950 p-3.5 rounded-xl border border-stone-850 text-stone-400 overflow-x-auto max-h-40 leading-snug">
+                      {JSON.stringify(activeReceipt.metadata, null, 2)}
+                    </pre>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="bg-stone-950 border-t border-stone-850 p-4 px-6 flex items-center justify-between text-[10px] text-stone-500">
+              <span className="font-mono">SPACE RECORD: #{activeReceipt?.id?.substring(0, 8) || "..."}</span>
+              <button 
+                disabled={!activeReceipt?.id}
+                onClick={() => {
+                  if (activeReceipt?.id) {
+                    navigator.clipboard.writeText(`ledger://events/${activeReceipt.id}`);
+                  }
+                }}
+                className="text-[9px] text-stone-400 hover:text-stone-200 bg-stone-900 border border-stone-850 hover:border-stone-700 px-2 py-1 rounded cursor-pointer transition-all disabled:opacity-50"
+              >
+                COPY LEDGER URI
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

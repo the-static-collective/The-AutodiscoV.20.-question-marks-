@@ -588,6 +588,36 @@ app.post("/api/tao/statements", async (req, res) => {
   }
 });
 
+app.get("/api/tao/statements/:id", async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ error: "Missing statement ID." });
+  }
+
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("events")
+      .select("id, created_at, content, metadata")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("TAO ledger read failed:", error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    if (!data) {
+      return res.status(404).json({ error: "Statement not found in ledger." });
+    }
+
+    return res.json(data);
+  } catch (err: any) {
+    console.error("Supabase fetch operation threw error:", err);
+    return res.status(500).json({ error: err.message || "Failed to fetch statement." });
+  }
+});
+
 // 5. Vite middleware for development or static serving for production
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
