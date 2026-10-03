@@ -144,10 +144,10 @@ You have NO catalog history, NO prior interpretations, NO author biography, NO m
 Artifact media type: ${packet.source.media_type}
 Artifact SHA-256: ${packet.source.sha256}
 
-Artifact:
-```svg
+Artifact begins:
+---BEGIN SVG---
 ${packet.content}
-```
+---END SVG---
 
 Return JSON only:
 {
