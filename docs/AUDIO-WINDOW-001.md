@@ -141,3 +141,15 @@ CI proves:
 - dialogue packet contains no audio bytes.
 
 A live model listen remains runtime evidence and is not fabricated in CI.
+
+
+## Sample-exact non-WAV decoding
+
+For compressed or noncanonical sources, ffmpeg first resamples into the canonical 44.1 kHz domain and then trims by integer sample index.
+
+The resulting PCM frame count must equal the requested quantized interval exactly. If the source ends early, the window is refused rather than silently shortening the heard specimen while retaining the requested end bound.
+
+```text
+REQUESTED BOUNDS != APPROXIMATE OUTPUT
+EARLY EOF != VALID WINDOW
+```
