@@ -9,7 +9,9 @@
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test:first-encounter": "node --test scripts/first-encounter.test.mjs"
+    "test:first-encounter": "node --test scripts/first-encounter.test.mjs",
+    "test:look-twice": "node --test scripts/look-twice.test.mjs",
+    "test:radio-isolation": "npm run test:first-encounter && npm run test:look-twice"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

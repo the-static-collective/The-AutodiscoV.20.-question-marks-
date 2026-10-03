@@ -13,5 +13,5 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: bun run test:first-encounter
+      - run: bun run test:radio-isolation
       - run: bun run lint
