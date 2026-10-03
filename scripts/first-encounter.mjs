@@ -3,10 +3,15 @@ import crypto from "node:crypto";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import dotenv from "dotenv";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-dotenv.config({ path: path.join(ROOT, ".env"), quiet: true });
+if (typeof process.loadEnvFile === "function") {
+  try {
+    process.loadEnvFile(path.join(ROOT, ".env"));
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
 
 const DIGEST_RE = /^[0-9a-f]{64}$/;
 const MODES = new Set(["OBSERVED", "DERIVED", "METAPHOR", "INTERPRETATION"]);
