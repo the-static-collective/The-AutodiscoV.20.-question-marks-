@@ -6,7 +6,7 @@ import path from "node:path";
 import dotenv from "dotenv";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-dotenv.config({ path: path.join(ROOT, ".env") });
+dotenv.config({ path: path.join(ROOT, ".env"), quiet: true });
 
 const DIGEST_RE = /^[0-9a-f]{64}$/;
 const MODES = new Set(["OBSERVED", "DERIVED", "METAPHOR", "INTERPRETATION"]);
