@@ -126,13 +126,13 @@ function quantizedBounds(startMs, endMs) {
 }
 
 async function ffmpegWindow(sourcePath, startMs, endMs) {
-  const startSeconds = (startMs / 1000).toFixed(6);
-  const endSeconds = (endMs / 1000).toFixed(6);
+  const bounds = quantizedBounds(startMs, endMs);
   const args = [
     "-hide_banner", "-loglevel", "error",
     "-i", sourcePath,
     "-vn",
-    "-af", `atrim=start=${startSeconds}:end=${endSeconds},asetpts=PTS-STARTPTS`,
+    "-af",
+    `aresample=${SAMPLE_RATE},atrim=start_sample=${bounds.start_frame}:end_sample=${bounds.end_frame},asetpts=PTS-STARTPTS`,
     "-ac", String(CHANNELS),
     "-ar", String(SAMPLE_RATE),
     "-c:a", "pcm_s16le",
@@ -332,12 +332,14 @@ export async function buildAudioWindow(request) {
       throw new TypeError("INVALID_FFMPEG_AUDIO_WINDOW");
     }
     const frameCount = pcm.length / BYTES_PER_FRAME;
+    const bounds = quantizedBounds(request.start_ms, request.end_ms);
+    const expectedFrames = bounds.end_frame - bounds.start_frame;
+    if (frameCount !== expectedFrames) {
+      throw new TypeError("AUDIO_WINDOW_EXCEEDS_SOURCE_DURATION");
+    }
     extraction = {
-      method: "ffmpeg-atrim-to-canonical-pcm",
-      start_frame: 0,
-      end_frame: frameCount,
-      actual_start_ms: request.start_ms,
-      actual_end_ms: request.start_ms + (frameCount * 1000) / SAMPLE_RATE,
+      method: "ffmpeg-sample-exact-to-canonical-pcm",
+      ...bounds,
     };
   }
 
