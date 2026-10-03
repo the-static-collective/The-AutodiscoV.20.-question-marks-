@@ -199,6 +199,110 @@ function validateRequest(request) {
   }
 }
 
+export function verifyAudioWindow(value) {
+  exactKeys(
+    value,
+    [
+      "schema", "source", "requested_bounds", "canonical_audio", "extraction",
+      "declared_metadata", "laws", "window_id",
+    ],
+    "INVALID_AUDIO_WINDOW",
+  );
+  if (value.schema !== "autodisco.audio-window/v0") {
+    throw new TypeError("INVALID_AUDIO_WINDOW_SCHEMA");
+  }
+  exactKeys(
+    value.source,
+    ["sha256", "media_type", "basename"],
+    "INVALID_AUDIO_WINDOW_SOURCE",
+  );
+  if (!/^[0-9a-f]{64}$/.test(value.source.sha256)) {
+    throw new TypeError("INVALID_AUDIO_WINDOW_SOURCE_DIGEST");
+  }
+  exactKeys(
+    value.requested_bounds,
+    ["start_ms", "end_ms"],
+    "INVALID_AUDIO_WINDOW_BOUNDS",
+  );
+  if (
+    !Number.isInteger(value.requested_bounds.start_ms) ||
+    !Number.isInteger(value.requested_bounds.end_ms) ||
+    value.requested_bounds.start_ms < 0 ||
+    value.requested_bounds.end_ms <= value.requested_bounds.start_ms ||
+    value.requested_bounds.end_ms - value.requested_bounds.start_ms > MAX_WINDOW_MS
+  ) {
+    throw new TypeError("INVALID_AUDIO_WINDOW_BOUNDS");
+  }
+  exactKeys(
+    value.canonical_audio,
+    [
+      "media_type", "sha256", "size_bytes", "sample_rate_hz", "channels",
+      "bits_per_sample", "frame_count", "duration_ms", "base64",
+    ],
+    "INVALID_AUDIO_WINDOW_CANONICAL_AUDIO",
+  );
+  if (
+    value.canonical_audio.media_type !== "audio/wav" ||
+    value.canonical_audio.sample_rate_hz !== SAMPLE_RATE ||
+    value.canonical_audio.channels !== CHANNELS ||
+    value.canonical_audio.bits_per_sample !== BITS_PER_SAMPLE ||
+    !Number.isInteger(value.canonical_audio.frame_count) ||
+    value.canonical_audio.frame_count <= 0 ||
+    !Number.isInteger(value.canonical_audio.size_bytes) ||
+    value.canonical_audio.size_bytes <= 44 ||
+    value.canonical_audio.size_bytes > MAX_INLINE_BYTES ||
+    typeof value.canonical_audio.base64 !== "string"
+  ) {
+    throw new TypeError("INVALID_AUDIO_WINDOW_CANONICAL_AUDIO");
+  }
+  const audioBytes = Buffer.from(value.canonical_audio.base64, "base64");
+  if (
+    audioBytes.length !== value.canonical_audio.size_bytes ||
+    sha256Bytes(audioBytes) !== value.canonical_audio.sha256
+  ) {
+    throw new TypeError("AUDIO_WINDOW_BYTES_DIGEST_MISMATCH");
+  }
+  const parsed = parseCanonicalWav(audioBytes);
+  if (
+    !parsed ||
+    parsed.pcm.length / BYTES_PER_FRAME !== value.canonical_audio.frame_count
+  ) {
+    throw new TypeError("AUDIO_WINDOW_BYTES_NOT_CANONICAL");
+  }
+  const expectedDuration = (
+    value.canonical_audio.frame_count * 1000
+  ) / SAMPLE_RATE;
+  if (Math.abs(expectedDuration - value.canonical_audio.duration_ms) > 1e-9) {
+    throw new TypeError("AUDIO_WINDOW_DURATION_MISMATCH");
+  }
+  exactKeys(
+    value.declared_metadata,
+    ["window_label"],
+    "INVALID_AUDIO_WINDOW_DECLARED_METADATA",
+  );
+  if (
+    typeof value.declared_metadata.window_label !== "string" ||
+    !value.declared_metadata.window_label.trim()
+  ) {
+    throw new TypeError("INVALID_AUDIO_WINDOW_LABEL");
+  }
+  if (!Array.isArray(value.laws)) {
+    throw new TypeError("INVALID_AUDIO_WINDOW_LAWS");
+  }
+  const identityBody = structuredClone(value);
+  delete identityBody.window_id;
+  identityBody.canonical_audio = {
+    ...identityBody.canonical_audio,
+    base64_sha256: sha256Text(identityBody.canonical_audio.base64),
+  };
+  delete identityBody.canonical_audio.base64;
+  const expectedId = `autodisco-audio-window-v0:${sha256Text(canonical(identityBody))}`;
+  if (value.window_id !== expectedId) {
+    throw new TypeError("AUDIO_WINDOW_ID_MISMATCH");
+  }
+  return value;
+}
+
 export async function buildAudioWindow(request) {
   validateRequest(request);
   const sourcePath = path.resolve(request.source_path);
