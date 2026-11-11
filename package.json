@@ -11,10 +11,11 @@
     "lint": "tsc --noEmit",
     "test:first-encounter": "node --test scripts/first-encounter.test.mjs",
     "test:look-twice": "node --test scripts/look-twice.test.mjs",
-    "test:radio-isolation": "npm run test:first-encounter && npm run test:look-twice && npm run test:audio-window && npm run test:audio-look-twice && npm run test:broadcast-assembly",
+    "test:radio-isolation": "npm run test:first-encounter && npm run test:look-twice && npm run test:audio-window && npm run test:audio-look-twice && npm run test:broadcast-assembly && npm run test:humkin-radio",
     "test:audio-window": "node --test scripts/audio-window.test.mjs",
     "test:audio-look-twice": "node --test scripts/audio-look-twice.test.mjs",
-    "test:broadcast-assembly": "node --test scripts/broadcast-assembly.test.mjs"
+    "test:broadcast-assembly": "node --test scripts/broadcast-assembly.test.mjs",
+    "test:humkin-radio": "node --test scripts/humkin-station.test.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

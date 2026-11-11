@@ -1,0 +1,78 @@
+{
+  "schema": "autodisco.humkin-radio-station/v1",
+  "station": "HUMKIN RADIO",
+  "album": "MUTANT POP",
+  "artist": "HUMKIN",
+  "presentation": "ON_DEMAND_INTERACTIVE_STATION_NOT_LIVE_BROADCAST",
+  "provenance": {
+    "editorial_origin": "HUMKIN / Auto Disco V20 sidecar",
+    "musical_assets": "HUMKIN MUTANT POP authorized release previews; rights verification for external sublicensing remains separate",
+    "fiction": "TRANSMISSIONS ARE INVENTED, NOT RECOVERED EVENTS",
+    "listeners": "NO FIRST-LISTEN DJ SESSION HAS BEEN RUN BY THIS PUBLIC WIDGET",
+    "audio": "PREVIEW EXCERPTS, NOT COMPLETE SONGS"
+  },
+  "channels": [
+    "beautiful",
+    "strange",
+    "home"
+  ],
+  "transmissions": [
+    {
+      "id": "signal-001",
+      "channel": "beautiful",
+      "title": "A little more daylight",
+      "track_id": "humkin-mutant-pop-10",
+      "track_title": "First Light Finds Your Face",
+      "preview": "/previews/C-first-light-finds-your-face.mp3",
+      "frequency": "88.1",
+      "dj": "The Station",
+      "line": "TRANSMISSION 001 // The morning was early, but the radio was already awake.",
+      "story": "Someone left a window open on the far side of the night. The light crossed it anyway. This is a fictional transmission, not a recovered event.",
+      "door_text": "Send a little daylight",
+      "claim_type": "FICTIONAL_INTERPRETATION",
+      "source_role": "PROMOTIONAL_PREVIEW",
+      "first_listen_status": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "signal-002",
+      "channel": "strange",
+      "title": "The greenhouse frequency",
+      "track_id": "humkin-mutant-pop-01",
+      "track_title": "Noontime Bloom",
+      "preview": "/previews/A-noontime-bloom.mp3",
+      "frequency": "92.7",
+      "dj": "The Station",
+      "line": "TRANSMISSION 002 // The plants learned to hum before the radio learned to listen.",
+      "story": "At exactly noon, three blue flowers appeared where the speakers should have been. Nobody thought to ask if it was impossible. This is fiction.",
+      "door_text": "Pass the strange signal",
+      "claim_type": "FICTIONAL_INTERPRETATION",
+      "source_role": "PROMOTIONAL_PREVIEW",
+      "first_listen_status": "NOT_ATTEMPTED"
+    },
+    {
+      "id": "signal-003",
+      "channel": "home",
+      "title": "The cup remembers warmth",
+      "track_id": "humkin-mutant-pop-06",
+      "track_title": "We Are Still Here",
+      "preview": "/previews/B-we-are-still-here.mp3",
+      "frequency": "104.3",
+      "dj": "The Station",
+      "line": "TRANSMISSION 003 // A blue cup remained on the table. So did the invitation.",
+      "story": "Every road had a different name for home. The kettle just kept the water warm. Nothing in this transmission claims to document a real person or event.",
+      "door_text": "Save a place for somebody",
+      "claim_type": "FICTIONAL_INTERPRETATION",
+      "source_role": "PROMOTIONAL_PREVIEW",
+      "first_listen_status": "NOT_ATTEMPTED"
+    }
+  ],
+  "laws": [
+    "STATION MEMORY != FIRST LISTENER MEMORY",
+    "FICTION != OBSERVED EVENT",
+    "PREVIEW != FULL SONG",
+    "BROWSER PLAYBACK != SEALED FIRST LISTEN",
+    "USER SELECTION != AUTOMATIC CONSENT",
+    "NO SERVER-SIDE LISTENER TRACKING"
+  ],
+  "manifest_sha256": "f4ae170ceb4d9becd4c7bb493a764df63fa30bf32ad081925a3ffb7ae73e909f"
+}

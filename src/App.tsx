@@ -12,6 +12,7 @@ import DigestiveLifecycle from "./components/DigestiveLifecycle";
 import NetworkTheatre from "./components/NetworkTheatre";
 import PodcastWidget from "./components/PodcastWidget";
 import TranslationGreenhouse from "./components/TranslationGreenhouse";
+import HumkinRadio from "./components/HumkinRadio";
 
 export default function App() {
   // Shared States
@@ -19,7 +20,7 @@ export default function App() {
   const [lemonScent, setLemonScent] = useState<number>(40);
   const [activeFileId, setActiveFileId] = useState<string>("f1");
   const [fossils, setFossils] = useState<Fossil[]>([]);
-  const [activeWorkspace, setActiveWorkspace] = useState<"gardener" | "companion" | "greenhouse">("companion");
+  const [activeWorkspace, setActiveWorkspace] = useState<"gardener" | "companion" | "greenhouse" | "radio">("companion");
 
   // LoopIts state initialized with rich seeded lifecycle items
   const [loops, setLoops] = useState<LoopIt[]>([
@@ -375,6 +376,17 @@ function garbageCollect(memoryMap) {
             >
               <Leaf className="w-3.5 h-3.5" /> Translation Greenhouse
             </button>
+            <button
+              onClick={() => setActiveWorkspace("radio")}
+              aria-pressed={activeWorkspace === "radio"}
+              className={`px-3 py-1.5 rounded-lg font-sans text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                activeWorkspace === "radio"
+                  ? "bg-stone-900 text-pink-400 border border-stone-800"
+                  : "text-stone-500 hover:text-stone-300"
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5" /> HUMKIN Radio
+            </button>
           </div>
 
           {/* Quick global statistics ticker */}
@@ -484,6 +496,9 @@ function garbageCollect(memoryMap) {
               </div>
             </div>
           </div>
+        ) : activeWorkspace === "radio" ? (
+          /* HUMKIN Radio public porch; existing sealed first-listen workflows remain isolated. */
+          <HumkinRadio />
         ) : activeWorkspace === "greenhouse" ? (
           /* Translation Greenhouse & Proof Browser */
           <TranslationGreenhouse

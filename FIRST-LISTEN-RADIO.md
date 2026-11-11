@@ -54,3 +54,13 @@ The station may remember. Ordinary DJs may not, unless their role explicitly dec
 Where in the current app can we insert a reversible `radio` route or mode without disturbing existing Autodisco behavior?
 
 Any future contributor who notices this file should inspect the canon before deleting, renaming, or flattening the idea.
+
+## HUMKIN RADIO 001 — the public experimental porch
+
+A reversible HUMKIN × MUTANT POP pilot now adds a **listener-facing station entrance**, without replacing this first-listen production protocol: [HUMKIN-RADIO-001](docs/HUMKIN-RADIO-001.md).
+
+Three mood doors (beautiful / strange / home) lead to short public song previews and explicitly **fictional** shortwave transmissions. Visitors can share individual signal links. Only after a separate affirmative choice can the website save a bounded channel history on that visitor's device, and it can be erased.
+
+The station's editorial catalog is machine-readable in [scripts/humkin-station.mjs](scripts/humkin-station.mjs) and [src/radio/humkin-radio.json](src/radio/humkin-radio.json), tested using `npm run test:humkin-radio`. The additional radio workspace in the React app previews the same signal set. The live experimental door is **https://humkin.abundent.org/radio/**.
+
+**Boundary:** These public story cards are not actual first-listen results, dialogue transcripts, broadcast occurrences, genuine AI voice performances or evidence. A real DJ's first listen still requires the existing audio window → two isolated first listens → sealed responses → dialogue → assembly sequence. Station memory is forbidden inside that isolated listening path.
