@@ -88,14 +88,15 @@ function runProcess(binary,args,cwd,timeout=10000) {
   });
 }
 
-export async function runNativeMotifCase(caseData,{motifDir,casePath,python="python"}={}) {
+export async function runNativeMotifCase(caseData,{motifDir,casePath,python=process.platform==="win32"?"py -3":"python3"}={}) {
   if(!motifDir||!casePath)throw Error("LOCAL_MOTIF_REPO_AND_CASE_FILE_REQUIRED");
   const root=path.resolve(motifDir);
   const source=path.join(root,"motif","reason_spine.py");
   const stat=await fs.stat(source).catch(()=>null);
   if(!stat?.isFile())throw Error("NATIVE_MOTIF_SOURCE_NOT_FOUND");
   // Invokes the original MOTIF Python CLI; no reimplementation, web API or credentials.
-  const stdout=await runProcess(python,["-m","motif.cli","compare","--case",path.resolve(casePath)],root);
+  const py=(python==="py -3"?{bin:"py",args:["-3"]}:{bin:python,args:[]});
+  const stdout=await runProcess(py.bin,[...py.args,"-m","motif.cli","compare","--case",path.resolve(casePath)],root);
   const result=JSON.parse(stdout);
   if(result.schema!=="motif.reason-spine-comparison/v1"||
      result.motif_spine?.schema!=="motif.reason-spine/v1"||
@@ -117,7 +118,7 @@ async function main() {
   const casePath=path.join(out,"motif-case.json");
   await fs.writeFile(casePath,JSON.stringify(caseData,null,2)+"\n");
   const result=await runNativeMotifCase(caseData,{motifDir,casePath,
-    python:process.env.MOTIF_PYTHON||"python"});
+    python:process.env.MOTIF_PYTHON||(process.platform==="win32"?"py -3":"python3")});
   const receipt={
     schema:"autodisco.accident.native-motif/v1",
     status:"EXPERIMENT_PROPOSED_NOT_EXECUTED",
