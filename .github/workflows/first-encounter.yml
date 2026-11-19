@@ -14,4 +14,6 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - run: bun run test:radio-isolation
+      - run: node --check scripts/humkin-accident-intake.mjs
+      - run: node --test scripts/humkin-accident-intake.test.mjs
       - run: bun run lint
