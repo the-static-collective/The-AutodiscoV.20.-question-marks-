@@ -20,7 +20,7 @@ test("MOTIF case remains blind to editorial data and authored assumptions stay e
   const caseData=buildMotifAccidentCase(source,"obscure-001");
   assert.equal(caseData.schema,"motif.reason-case/v1");
   assert.equal(caseData.hypotheses.length,4);
-  assert.equal(caseData.tests.length,4);
+  assert.equal(caseData.tests.length,6);
   assert.deepEqual(caseData.reports,[]);
   const serialized=JSON.stringify(caseData);
   for(const token of ["SECRET SONG TITLE","SECRET ARTIST","SECRET ALBUM",
