@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import crypto from "node:crypto";
 import {buildAudioWindow} from "./audio-window.mjs";
-import {prepareAudioLookTwice,sealAudioFirstResponse} from "./audio-look-twice.mjs";
+import {prepareAudioLookTwice,sealAudioFirstResponse,buildAudioDialoguePacket} from "./audio-look-twice.mjs";
 import {compareListenerSnapshots,buildReturnEvidence,inspectSealedV20} from "./accident-return-core.mjs";
 import {runReturnLoop} from "./accident-return-loop.mjs";
 
@@ -112,6 +113,43 @@ test("fixture-sealed first listen only counts after the real V20 verifier accept
    assert.equal(outcome.reports[0].test,"dj_intrigue");
    assert.equal(outcome.reports[0].status,"reported");
    assert.ok(outcome.holds.includes("HOLD_NO_SEALED_DJ_DIALOGUE"));
+   // This fabricated fixture tests digest/path validation ONLY: no model call was made.
+   const payload=buildAudioDialoguePacket(pair,first_responses);
+   const fabricatedDialogue={
+     turns:[
+       {listener_id:pair.packets[0].listener.id,text:"I noticed silence."},
+       {listener_id:pair.packets[1].listener.id,text:"I noticed stillness."}
+     ],
+     convergences:["Both describe near-silence."],
+     differences:["The fictional speakers used different descriptions."],
+     lingering_intrigue:true,
+     intrigue_statement:"Would context alter this?",
+     door_seed:"Try an independent field response."
+   };
+   const canon=value=>Array.isArray(value)?"["+value.map(canon).join(",")+"]":
+     value&&typeof value==="object"?"{"+Object.keys(value).sort().map(k=>
+       JSON.stringify(k)+":"+canon(value[k])).join(",")+"}":JSON.stringify(value);
+   const hex=value=>crypto.createHash("sha256").update(canon(value)).digest("hex");
+   const body={
+     schema:"autodisco.audio-look-twice-dialogue-result/v0",
+     status:"dialogue-sealed",dialogue_packet:payload,
+     dialogue:fabricatedDialogue,dialogue_sha256:hex(fabricatedDialogue),
+     model_used:"SYNTHETIC_CI_FIXTURE_NOT_AN_ACTUAL_MODEL",
+     laws:[
+       "DIALOGUE FOLLOWS TWO SEALED FIRST LISTENS",
+       "AUDIO DIALOGUE != RETROACTIVE FIRST LISTEN",
+       "LINGERING INTRIGUE != SOURCE TRUTH",
+       "DOOR SEED != CROSSING"
+     ]
+   };
+   const dialogue={...body,
+     dialogue_id:"autodisco-audio-look-twice-dialogue-result-v0:"+hex(body)};
+   const full=inspectSealedV20({window,pair,encounter,operator,dialogue},"song-abc");
+   assert.deepEqual(full.reports.map(r=>r.test),["dj_intrigue","dj_disagreement"]);
+   assert.equal(full.receipts.at(-1).status,"MODEL_REPORTED_DIFFERENCES_NOT_VERIFIED_FACTS");
+   assert.throws(()=>inspectSealedV20({window,pair,encounter,operator,
+     dialogue:{...dialogue,dialogue_sha256:"0".repeat(64)}},"song-abc"),
+     /V20_DIALOGUE_SHA256_MISMATCH/);
    const tampered={...encounter,first_responses:[
      {...first_responses[0],response:{...first_responses[0].response,lingering_intrigue:false}},
      first_responses[1]
