@@ -15,22 +15,22 @@ const METHODS=Object.freeze([
   {
     id:"hidden-gem",
     description:"Neglected recordings contain durable listener appeal.",
-    predictions:{blind_excitement:"yes",delayed_replay:"yes",contextual_pairing:"no",dj_disagreement:"no"},
+    predictions:{blind_excitement:"yes",delayed_replay:"yes",contextual_pairing:"no",dj_disagreement:"no",dj_intrigue:"yes",listener_move:"yes"},
   },
   {
     id:"context-unlock",
     description:"An unexpected neighbor makes the recording meaningful.",
-    predictions:{blind_excitement:"no",delayed_replay:"no",contextual_pairing:"yes",dj_disagreement:"no"},
+    predictions:{blind_excitement:"no",delayed_replay:"no",contextual_pairing:"yes",dj_disagreement:"no",dj_intrigue:"no",listener_move:"yes"},
   },
   {
     id:"productive-strangeness",
     description:"Differences between listeners expose a useful creative frontier.",
-    predictions:{blind_excitement:"yes",delayed_replay:"no",contextual_pairing:"yes",dj_disagreement:"yes"},
+    predictions:{blind_excitement:"yes",delayed_replay:"no",contextual_pairing:"yes",dj_disagreement:"yes",dj_intrigue:"yes",listener_move:"yes"},
   },
   {
     id:"weak-signal",
     description:"Low exposure alone does not predict a rediscovery.",
-    predictions:{blind_excitement:"no",delayed_replay:"no",contextual_pairing:"no",dj_disagreement:"no"},
+    predictions:{blind_excitement:"no",delayed_replay:"no",contextual_pairing:"no",dj_disagreement:"no",dj_intrigue:"no",listener_move:"no"},
   },
 ]);
 const PROBES=Object.freeze([
@@ -38,6 +38,8 @@ const PROBES=Object.freeze([
   {id:"delayed_replay",cost:0.40,risk:0.01,description:"Observe a voluntary replay after a time gap."},
   {id:"contextual_pairing",cost:0.20,risk:0.02,description:"Compare the same song alongside an unexpected approved neighbor."},
   {id:"dj_disagreement",cost:0.15,risk:0.01,description:"Compare sealed independent V20 observations; do not synthesize disagreement."},
+  {id:"dj_intrigue",cost:0.09,risk:0.01,description:"Read whether both verified V20 first-listen responses declare lingering intrigue; model opinion only."},
+  {id:"listener_move",cost:0.18,risk:0.02,description:"Compare two same-program public aggregate snapshots for an increase of at least three self-reported dance classifications; not unique listeners or causation."},
 ]);
 
 export function buildMotifAccidentCase(handoff,trackId,reports=[]) {
