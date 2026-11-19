@@ -32,3 +32,32 @@ CI checks out the original native MOTIF implementation at pinned commit and actu
 Neither this bridge nor HUMKIN PR #154 has yet proved a field deployment. Merge, install, supply local source audio and do a genuine first-listen run before advertising a model-hosted DJ station.
 
 Related review: https://github.com/the-static-collective/HUMKIN/pull/154
+
+## RETURN LOOP 002 — listen, compare, decide what to test next
+
+HUMKIN's Auto Disco experimental station now exports an **aggregate-only** feedback snapshot from its existing `humkin-compost` public stats. The first export pins that six-track set for the current page session; repeat the export later before changing frequencies or starting a new experiment. Files contain the six source track IDs, cumulative plays, ratings and `dance` classifications, not individual listener/device/network identifiers. Keep the first and second exports together with the **same handoff**.
+
+1. On `/fm/autodisco/`, export `humkin-v20-editorial-handoff.json`. Export a feedback snapshot before a listening period. After listeners have had an opportunity to respond, export a second snapshot from the same six-track program.
+2. Separately run the first-listen intake for one specific track with independently reviewed source audio and expected SHA-256. It can create `operator-context.json`, `window.json`, `pair.json`, and, if real models are configured and executed, `encounter.json` / `dialogue.json` in a private folder.
+3. Run the actual feedback-to-MOTIF bridge against the ORIGINAL local MOTIF checkout:
+
+    node scripts/accident-return-loop.mjs /private/humkin-v20-editorial-handoff.json song-123 /private/v20-run /path/to/MOTIF /private/round-001 --before=/private/before.json --after=/private/after.json
+
+The CLI validates that both aggregate snapshots refer to the **same program seed, same complete selected-track list and increasing capture times**. It accepts only a quantitative increase in cumulative `dance` classifications of at least three as a provisional `listener_move=yes` report; it does not infer verified distinct humans, causal impact, real delayed replay, or negative audience sentiment from missing data. Decreasing or inconsistent aggregate totals are HELD, because ratings can be edited.
+
+For V20, it reuses the original protocol's audio-window, pair, sealed-first-response and episode-assembly verifiers, checks source-identity binding and the dialogue digests, and records two narrowly scoped observations: whether the *models* both declared `lingering_intrigue`, and whether their sealed cross-read declared differences. A model's artistic interpretation is **not** human reaction or established truth. If no real model encounter exists, V20 contributes **no** first-listen report.
+
+4. Inspect `return-evidence.json` and its `provenance`, `held_questions`, source roots and statuses. They default to `reported`, so the MOTIF Reasoning Spine will preserve but not treat them as verified ground truth. Its baseline and updated policy comparisons are written to separate artifacts. `next-experiment.json` states the next voluntary probe and whether any authored hypotheses actually changed.
+5. To explicitly *declare a human review*, create a local `reviews.json` containing **only matching** `test`, `source_root`, `outcome`, `review_receipt` from the raw evidence. Example review is not an authenticated signature, outside auditing, confirmed model truth, human consent or station publishing. Repeat with `--reviews=/private/reviews.json`. Only exact matches to a source-linked report may advance its `status` to `reviewed`; MOTIF's original model-family filter can then revise hypothetical candidates.
+
+    node scripts/accident-return-loop.mjs /private/humkin-v20-editorial-handoff.json song-123 /private/v20-run /path/to/MOTIF /private/round-002 --before=/private/before.json --after=/private/after.json --reviews=/private/reviews.json
+
+### Outputs and independence
+
+`return-evidence.json` is the source-linked record; `motif-baseline-case.json`/`motif-updated-case.json` are intentionally **source-agnostic** proposals; `motif-baseline-compare.json`/`motif-updated-compare.json` contain real native MOTIF and strong classical comparisons; `next-experiment.json` compares before/after eligible hypotheses and supplies the proposed next test.
+
+**Deliberate HOLD:** listeners may react for reasons unrelated to the radio's editorial placement, and all public totals are cumulative. A change is a measured count difference under the tool's self-described API, not a randomized experiment. First-listen model dialogue and human feedback are recorded as distinct source families; one does not certify the other. A declared review is a human-entered decision, not a cryptographically trusted attestation.
+
+CI verifies the full synthetic-data return loop using the actual pinned MOTIF Python source and native classical controls. The synthetic fixtures do **not** claim that two real AI DJs listened or that real people provided feedback.
+
+**Current deployment status:** local owner-run workflow proposed by draft PR. No automatic recurring cloud run, no private service-role credentials in the browser, and no auto-created station carts, vinyl lists, broadcast episodes or published programs.
