@@ -35,4 +35,8 @@ jobs:
         env:
           MOTIF_REPO: ${{ github.workspace }}/motif-reference
           MOTIF_PYTHON: python3
+      - run: ffmpeg -version
+      - run: ffprobe -version
+      - run: node --check scripts/render-radio-master.mjs
+      - run: node --test scripts/render-radio-master.test.mjs
       - run: bun run lint
