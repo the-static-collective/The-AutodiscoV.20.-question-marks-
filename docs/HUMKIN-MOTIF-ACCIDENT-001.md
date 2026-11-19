@@ -61,3 +61,12 @@ For V20, it reuses the original protocol's audio-window, pair, sealed-first-resp
 CI verifies the full synthetic-data return loop using the actual pinned MOTIF Python source and native classical controls. The synthetic fixtures do **not** claim that two real AI DJs listened or that real people provided feedback.
 
 **Current deployment status:** local owner-run workflow proposed by draft PR. No automatic recurring cloud run, no private service-role credentials in the browser, and no auto-created station carts, vinyl lists, broadcast episodes or published programs.
+
+### Windows / Acer
+
+On Windows the native MOTIF runner defaults to the installed Python launcher **`py -3`**, matching the HUMKIN Acer setup. On macOS/Linux it defaults to `python3`. Set `MOTIF_PYTHON` explicitly only when a different interpreter is needed. Example in PowerShell:
+
+    $env:MOTIF_PYTHON = "py -3"
+    node scripts/accident-return-loop.mjs "C:\HUMKIN\handoff.json" song-123 "C:\HUMKIN\v20-run" "C:\MOTIF" "C:\HUMKIN\round-001" --before="C:\HUMKIN\feedback-before.json" --after="C:\HUMKIN\feedback-after.json"
+
+Running this on the Acer still requires a checkout of V20 and MOTIF, Node.js, Python, and the exported snapshot files; it does not install those dependencies or turn the Acer into an always-on AI-DJ server.
