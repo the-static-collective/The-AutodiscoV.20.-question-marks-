@@ -139,7 +139,7 @@ export async function renderMaster({bundleDir,voiceManifestPath,outputDir,
         sha256:a.sha256,voice_type:a.voice_type||null,voice_identity:a.voice_identity||null})),
       proposed_catalog:{artist:"Auto Disco V20",album:"First-Listen Radio",
         kind:"song",destination_station:"autodisco-v20"},
-      voice_rights_review:"REQUIRED",owner_publication:"NOT_PERFORMED",
+      voice_rights_review:"REQUIRED",publication:"NOT_PERFORMED",owner_publication:"NOT_PERFORMED",
       broadcast_occurrence:"NOT_OBSERVED",
       canonical_artist_derived_voice:"NOT_PROVEN",
       note:"Local OS speech is noncanonical, not the original performer's authorized voice model."
