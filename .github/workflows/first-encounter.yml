@@ -29,4 +29,10 @@ jobs:
         env:
           MOTIF_REPO: ${{ github.workspace }}/motif-reference
           MOTIF_PYTHON: python3
+      - run: node --check scripts/accident-return-core.mjs
+      - run: node --check scripts/accident-return-loop.mjs
+      - run: node --test scripts/accident-return-loop.test.mjs
+        env:
+          MOTIF_REPO: ${{ github.workspace }}/motif-reference
+          MOTIF_PYTHON: python3
       - run: bun run lint
