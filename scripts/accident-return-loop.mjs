@@ -25,7 +25,7 @@ function argsFromFlags(flags) {
   return found;
 }
 export async function runReturnLoop({handoff,trackId,v20={},before=null,after=null,reviews=[],
-  motifDir,outputDir,python="python3"}={}) {
+  motifDir,outputDir,python=process.platform==="win32"?"py -3":"python3"}={}) {
   if(!motifDir||!outputDir)throw Error("MOTIF_AND_PRIVATE_OUTPUT_REQUIRED");
   const out=path.resolve(outputDir);
   if(out===path.parse(out).root)throw Error("OUTPUT_MUST_NOT_BE_FILESYSTEM_ROOT");
@@ -92,7 +92,7 @@ async function main() {
     throw Error("INVALID_REVIEW_FILE");
   if(options.before&&(!before||!after))throw Error("SNAPSHOTS_NOT_FOUND");
   const packet=await runReturnLoop({handoff,trackId,v20,before,after,reviews,
-    motifDir,outputDir:outDir,python:process.env.MOTIF_PYTHON||"python3"});
+    motifDir,outputDir:outDir,python:process.env.MOTIF_PYTHON||(process.platform==="win32"?"py -3":"python3")});
   process.stdout.write(JSON.stringify(packet,null,2)+"\n");
 }
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])) {
