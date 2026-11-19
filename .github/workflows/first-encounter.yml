@@ -16,4 +16,17 @@ jobs:
       - run: bun run test:radio-isolation
       - run: node --check scripts/humkin-accident-intake.mjs
       - run: node --test scripts/humkin-accident-intake.test.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/checkout@v4
+        with:
+          repository: the-static-collective/MOTIF
+          ref: 9593b0b8e1f9e70bfc09e72adc49ee64e567609b
+          path: motif-reference
+      - run: node --check scripts/motif-accident-lab.mjs
+      - run: node --test scripts/motif-accident-lab.test.mjs
+        env:
+          MOTIF_REPO: ${{ github.workspace }}/motif-reference
+          MOTIF_PYTHON: python3
       - run: bun run lint
